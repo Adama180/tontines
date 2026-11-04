@@ -83,6 +83,8 @@ public class TestServices {
             testComptes();
             testFondsCommun();
             testTourDeRole();
+            testReciprocite();
+            testReciprociteTirage();
             testTirageAuSort();
             testAdmin();
         } catch (Exception e) {
@@ -167,7 +169,8 @@ public class TestServices {
 
         ParametresTontine p = new ParametresTontine();
         p.setDescription("Tontine de test");
-        p.setMontantCotisation(5000);
+        p.setMontantCotisation(1000);
+        p.setMontantMaxCotisation(2000.0);
         p.setFrequence(Frequence.MENSUELLE);
         p.setDureeEnCycle(12);
         p.setPenaliteRetard(500);
@@ -177,6 +180,17 @@ public class TestServices {
         rejoindre(t, g, m1);
         rejoindre(t, g, m2);
         erreur("Demarrer un cycle sans conditions de pret", () -> cycles.demarrerCycle(g.getId(), t.getId()));
+        ParametresTontine mauvais = new ParametresTontine();
+        mauvais.setMontantCotisation(500);
+        mauvais.setMontantMaxCotisation(2000.0);
+        mauvais.setFrequence(Frequence.MENSUELLE); mauvais.setDureeEnCycle(12); mauvais.setNbMembreMax(3);
+        mauvais.setTauxInteret(10.0); mauvais.setDureeMaxPret(30);
+        erreur("Minimum de cotisation inferieur a 1 000 refuse", () -> adhesions.definirParametres(g.getId(), t.getId(), mauvais));
+        mauvais.setMontantCotisation(1500);
+        mauvais.setMontantMaxCotisation(1000.0);
+        erreur("Maximum inferieur au minimum refuse", () -> adhesions.definirParametres(g.getId(), t.getId(), mauvais));
+        mauvais.setMontantMaxCotisation(null);
+        erreur("Maximum obligatoire pour un fonds commun", () -> adhesions.definirParametres(g.getId(), t.getId(), mauvais));
         erreur("Parametres : reserve au gerant", () -> adhesions.definirParametres(m1.getId(), t.getId(), p));
         adhesions.definirParametres(g.getId(), t.getId(), p);
         Tontine tParam = new TontineDao().findById(t.getId());
@@ -191,44 +205,46 @@ public class TestServices {
         });
         verifier("3 membres actifs", new com.tontine.service.ConsultationService().nombreMembres(t.getId()) == 3);
 
-        erreur("Cotiser sans cycle en cours", () -> cotisations.payerCotisation(g.getId(), t.getId(), 5000, ModePaiement.WAVE, "770000001"));
+        erreur("Cotiser sans cycle en cours", () -> cotisations.payerCotisation(g.getId(), t.getId(), 1500, ModePaiement.WAVE, "770000001"));
         Cycle c = cycles.demarrerCycle(g.getId(), t.getId());
         verifier("Cycle 1 demarre", c.getNumero() == 1);
         erreur("Un seul cycle a la fois", () -> cycles.demarrerCycle(g.getId(), t.getId()));
-        erreur("Non-membre ne peut pas cotiser", () -> cotisations.payerCotisation(intrus.getId(), t.getId(), 5000, ModePaiement.WAVE, "770000002"));
-        erreur("Montant inferieur au minimum", () -> cotisations.payerCotisation(g.getId(), t.getId(), 1000, ModePaiement.WAVE, "770000001"));
-        erreur("Numero Wave invalide", () -> cotisations.payerCotisation(g.getId(), t.getId(), 5000, ModePaiement.WAVE, "12"));
+        erreur("Non-membre ne peut pas cotiser", () -> cotisations.payerCotisation(intrus.getId(), t.getId(), 1500, ModePaiement.WAVE, "770000002"));
+        erreur("Montant au-dessus de 2 000", () -> cotisations.payerCotisation(g.getId(), t.getId(), 3000, ModePaiement.WAVE, "770000001"));
+        erreur("Montant au-dessous de 1 000", () -> cotisations.payerCotisation(g.getId(), t.getId(), 500, ModePaiement.WAVE, "770000001"));
+        erreur("Numero Wave invalide", () -> cotisations.payerCotisation(g.getId(), t.getId(), 1500, ModePaiement.WAVE, "12"));
 
-        cotisations.payerCotisation(g.getId(), t.getId(), 5000, ModePaiement.WAVE, "770000001");
-        Transaction esp = cotisations.payerCotisation(m1.getId(), t.getId(), 5000, ModePaiement.ESPECE, null);
+        cotisations.payerCotisation(g.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000001");
+        erreur("Une seule cotisation par periode (fonds commun)", () -> cotisations.payerCotisation(g.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000001"));
+        Transaction esp = cotisations.payerCotisation(m1.getId(), t.getId(), 1500, ModePaiement.ESPECE, null);
         verifier("Espece : paiement en attente", esp.getStatut().name().equals("EN_ATTENTE"));
-        cotisations.payerCotisation(m2.getId(), t.getId(), 10000, ModePaiement.ORANGE_MONEY, "770000003");
-        verifier("Fonds avant confirmation espece = 15 000", prets.fondsDisponible(t.getId()) == 15000);
+        cotisations.payerCotisation(m2.getId(), t.getId(), 1000, ModePaiement.ORANGE_MONEY, "770000003");
+        verifier("Fonds avant confirmation espece = 3 000", prets.fondsDisponible(t.getId()) == 3000);
         erreur("Un membre ne confirme pas les especes", () -> cotisations.confirmerPaiementEspece(m2.getId(), esp.getId(), true));
         erreur("Cloture impossible avec un paiement en attente", () -> cycles.cloturerCycle(g.getId(), t.getId()));
         cotisations.confirmerPaiementEspece(g.getId(), esp.getId(), true);
-        verifier("Fonds apres confirmation = 20 000", prets.fondsDisponible(t.getId()) == 20000);
+        verifier("Fonds apres confirmation = 4 500", prets.fondsDisponible(t.getId()) == 4500);
 
         erreur("Pret refuse : trop eleve", () -> prets.demanderPret(m1.getId(), t.getId(), 99999, 10, "x"));
         erreur("Pret refuse : duree trop longue", () -> prets.demanderPret(m1.getId(), t.getId(), 1000, 31, "x"));
-        Pret p1 = prets.demanderPret(m1.getId(), t.getId(), 6000, 20, "Commerce");
+        Pret p1 = prets.demanderPret(m1.getId(), t.getId(), 2000, 20, "Commerce");
         erreur("Un seul pret a la fois", () -> prets.demanderPret(m1.getId(), t.getId(), 1000, 10, "x"));
         erreur("Un membre ne valide pas un pret", () -> prets.validerPret(m2.getId(), p1.getId(), true));
         prets.validerPret(g.getId(), p1.getId(), true);
-        verifier("Pret de 6 000 accorde, fonds = 14 000", prets.fondsDisponible(t.getId()) == 14000);
+        verifier("Pret de 2 000 accorde, fonds = 2 500", prets.fondsDisponible(t.getId()) == 2500);
 
-        Pret p2 = prets.demanderPret(g.getId(), t.getId(), 2000, 10, "Urgence");
+        Pret p2 = prets.demanderPret(g.getId(), t.getId(), 1000, 10, "Urgence");
         erreur("Le gerant ne valide jamais son propre pret", () -> prets.validerPret(g.getId(), p2.getId(), true));
         verifier("Le pret du gerant est dans la file de l'admin", admin.pretsGerantsEnAttente(adminId).size() == 1);
         admin.validerPretGerant(adminId, p2.getId(), true);
         verifier("Les prets sont visibles de tous les membres", prets.listerPrets(m2.getId(), t.getId()).size() == 2);
         erreur("Non-membre ne voit pas les prets", () -> prets.listerPrets(intrus.getId(), t.getId()));
-        verifier("Interet simple 10 % de 6 000 = 600", prets.interets(p1, tParam) == 600.0 && prets.totalDu(p1, tParam) == 6600.0);
+        verifier("Interet simple 10 % de 2 000 = 200", prets.interets(p1, tParam) == 200.0 && prets.totalDu(p1, tParam) == 2200.0);
 
         erreur("Cloture impossible avec des prets non rembourses", () -> cycles.cloturerCycle(g.getId(), t.getId()));
         erreur("Remboursement superieur au reste du", () -> prets.rembourser(m1.getId(), p1.getId(), 7000, ModePaiement.WAVE, "770000004"));
-        prets.rembourser(m1.getId(), p1.getId(), 3000, ModePaiement.WAVE, "770000004");
-        prets.rembourser(m1.getId(), p1.getId(), 3600, ModePaiement.WAVE, "770000004");
+        prets.rembourser(m1.getId(), p1.getId(), 1000, ModePaiement.WAVE, "770000004");
+        prets.rembourser(m1.getId(), p1.getId(), 1200, ModePaiement.WAVE, "770000004");
         // le pret du gerant (10 jours) est decaisse "il y a 20 jours" : son remboursement sera en retard
         TransactionDao txDao = new TransactionDao();
         for (Transaction tx : txDao.findByTontine(t.getId())) {
@@ -237,9 +253,9 @@ public class TestServices {
                 txDao.update(tx);
             }
         }
-        prets.rembourser(g.getId(), p2.getId(), 2200, ModePaiement.ORANGE_MONEY, "770000001");
+        prets.rembourser(g.getId(), p2.getId(), 1100, ModePaiement.ORANGE_MONEY, "770000001");
         verifier("Remboursement en retard : penalite de 500 appliquee", txDao.totalParType(t.getId(), TypeTransaction.PENALITE) == 500);
-        verifier("Prets rembourses, fonds = 20 800 + 500 de penalite", prets.fondsDisponible(t.getId()) == 21300);
+        verifier("Prets rembourses, fonds = 4 800 + 500 de penalite", prets.fondsDisponible(t.getId()) == 5300);
         erreur("Pret deja rembourse", () -> prets.rembourser(m1.getId(), p1.getId(), 10, ModePaiement.WAVE, "770000004"));
 
         verifier("Historique complet visible par un membre", cotisations.historiqueTontine(m2.getId(), t.getId()).size() == 9);
@@ -247,17 +263,69 @@ public class TestServices {
         verifier("Activite membre", stats.activiteMembre(m1.getId(), t.getId()).getValeurs().size() >= 5);
         verifier("Tableau de bord tontine", stats.tontine(g.getId(), t.getId()).getValeurs().size() >= 6);
 
+        // le cycle (12 mois) n'est pas termine : cloture impossible avant sa date de fin
+        erreur("Cloture impossible avant la fin du cycle", () -> cycles.cloturerCycle(g.getId(), t.getId()));
+        // on recule le debut du cycle de 12 mois : le cycle est maintenant termine
+        CycleDao cycleDao = new CycleDao();
+        c.setDateDebut(LocalDate.now().minusMonths(12));
+        cycleDao.update(c);
         List<Distribution> versements = cycles.cloturerCycle(g.getId(), t.getId());
         double somme = 0;
         for (Distribution d : versements) {
             somme += d.getMontantTotal();
         }
         verifier("3 versements en fin de cycle", versements.size() == 3);
-        verifier("Total verse = 21 300 (cotisations 20 000 + interets 800 + penalite 500)", Math.abs(somme - 21300) < 0.005);
+        verifier("Total verse = 5 300 (cotisations 4 500 + interets 300 + penalite 500)", Math.abs(somme - 5300) < 0.005);
         verifier("Fonds vide apres cloture", Math.abs(prets.fondsDisponible(t.getId())) < 0.005);
         verifier("Soldes remis a zero", stats.activiteMembre(m1.getId(), t.getId()).getValeurs().get("Mon solde dans la tontine").startsWith("0"));
+        // le gerant change l'intervalle entre deux cycles : 1 500 a 3 000
+        p.setMontantCotisation(1500);
+        p.setMontantMaxCotisation(3000.0);
+        adhesions.definirParametres(g.getId(), t.getId(), p);
+        Tontine tNouv = new TontineDao().findById(t.getId());
+        verifier("Intervalle modifie par le gerant : 1 500 a 3 000", tNouv.getMontantCotisation() == 1500 && tNouv.getMontantMaxCotisation() == 3000);
         Cycle c2 = cycles.demarrerCycle(g.getId(), t.getId());
         verifier("Nouveau cycle possible (cycle 2)", c2.getNumero() == 2);
+
+        // ---- frequence journaliere : la periode est le jour
+        Tontine tJour = new Tontine();
+        tJour.setFrequence(Frequence.JOURNALIERE);
+        tJour.setDureeEnCycle(30);
+        Cycle cJour = new Cycle();
+        cJour.setDateDebut(LocalDate.of(2026, 1, 1));
+        verifier("Journaliere : un cycle de 30 periodes dure 30 jours", CotisationService.finDeCycle(cJour, tJour).equals(LocalDate.of(2026, 1, 31)));
+        verifier("Journaliere : libelles", com.tontine.service.Libelles.frequence(Frequence.JOURNALIERE).startsWith("Journali")
+                && com.tontine.service.Libelles.periode(Frequence.JOURNALIERE).equals("jour"));
+
+        // ---- cycle 2 : cotisation en retard, penalite, partage des penalites a la fin du cycle
+        verifier("Cycle de 12 periodes : fin prevue dans 12 mois", CotisationService.finDeCycle(c2, tParam).equals(LocalDate.now().plusMonths(12)));
+        verifier("A l'heure : pas de penalite prevue", !cotisations.etatCotisation(g.getId(), t.getId()).enRetard);
+        try (Connection cn = ConnexionBD.getConnection(); Statement st = cn.createStatement()) { // membres presents depuis le debut du cycle
+            st.executeUpdate("UPDATE adhesion SET date_adhesion = NOW() - INTERVAL 2 YEAR WHERE tontine_id = " + t.getId());
+        }
+        c2.setDateDebut(LocalDate.now().minusDays(40)); // la periode 1 s'est terminee il y a une dizaine de jours
+        cycleDao.update(c2);
+        com.tontine.service.EtatCotisation etG = cotisations.etatCotisation(g.getId(), t.getId());
+        verifier("Etat : cotisation 1/12 en retard, penalite 500", etG.rang == 1 && etG.attendues == 12 && etG.enRetard && etG.penalite == 500);
+        erreur("Nouvel intervalle : 1 000 est sous le nouveau minimum", () -> cotisations.payerCotisation(g.getId(), t.getId(), 1000, ModePaiement.WAVE, "770000001"));
+        erreur("Nouvel intervalle : 3 500 depasse le nouveau maximum", () -> cotisations.payerCotisation(g.getId(), t.getId(), 3500, ModePaiement.WAVE, "770000001"));
+        double penAvant = txDao.totalParType(t.getId(), TypeTransaction.PENALITE);
+        cotisations.payerCotisation(g.getId(), t.getId(), 1500, ModePaiement.WAVE, "770000001");
+        verifier("Cotisation payee en retard : penalite de 500 enregistree", txDao.totalParType(t.getId(), TypeTransaction.PENALITE) == penAvant + 500);
+        cotisations.payerCotisation(m1.getId(), t.getId(), 2500, ModePaiement.ORANGE_MONEY, "770000003");
+        verifier("2e cotisation du meme mois autorisee (rattrapage, periode 2 commencee)", cotisations.etatCotisation(g.getId(), t.getId()).peutCotiser);
+        verifier("m2 n'a pas cotise : signale au gerant", cotisations.membresSansCotisation(t.getId()).size() >= 1);
+        c2.setDateDebut(LocalDate.now().minusMonths(12));
+        cycleDao.update(c2);
+        double potAvant = prets.fondsDisponible(t.getId());
+        List<Distribution> v2c = cycles.cloturerCycle(g.getId(), t.getId());
+        double s2 = 0;
+        for (Distribution d : v2c) {
+            s2 += d.getMontantTotal();
+        }
+        verifier("Fin de cycle 2 : tout le fonds (cotisations + penalites) est reparti entre les membres", Math.abs(s2 - potAvant) < 0.005 && potAvant == 5000);
+        verifier("Penalites partagees : m2 (qui n'avait rien cotise) recoit une part", v2c.stream().anyMatch(d -> d.getBeneficiaireId() == m2.getId() && d.getMontantTotal() > 0));
+        verifier("Fonds vide apres la cloture du cycle 2", Math.abs(prets.fondsDisponible(t.getId())) < 0.005);
     }
 
     private static void testTourDeRole() throws Exception {
@@ -275,6 +343,14 @@ public class TestServices {
         p.setDureeEnCycle(3);
         p.setPenaliteRetard(200);
         p.setNbMembreMax(3);
+        adhesions.definirParametres(h.getId(), t.getId(), p);
+        p.setMontantCotisation(3500);
+        adhesions.definirParametres(h.getId(), t.getId(), p);
+        verifier("Tour de role : le gerant definit le montant a cotiser (3 500)", new TontineDao().findById(t.getId()).getMontantCotisation() == 3500
+                && new TontineDao().findById(t.getId()).getMontantMaxCotisation() == null);
+        p.setMontantCotisation(0);
+        erreur("Tour de role : montant nul refuse", () -> adhesions.definirParametres(h.getId(), t.getId(), p));
+        p.setMontantCotisation(3000);
         adhesions.definirParametres(h.getId(), t.getId(), p);
         rejoindre(t, h, n1);
         rejoindre(t, h, n2);
@@ -342,6 +418,131 @@ public class TestServices {
                 stats.activiteMembre(n1.getId(), t.getId()).getValeurs().get("Mon solde dans la tontine").startsWith("0"));
     }
 
+    private static void testReciprocite() throws Exception {
+        System.out.println("-- Tour de role : reciprocite des cotisations --");
+        Utilisateur x = inscrire("rc-x");
+        Utilisateur y = inscrire("rc-y");
+        Utilisateur z = inscrire("rc-z");
+        Tontine t = admin.validerDemandeCreation(adminId, creation(x.getId(), nomUnique("Reciproque"),
+                TypeTontine.TOUR_DE_ROLE, 2000, Frequence.MENSUELLE, 3).getId(), true);
+        ParametresTontine p = new ParametresTontine();
+        p.setDescription("Reciprocite");
+        p.setMontantCotisation(2000);
+        p.setFrequence(Frequence.MENSUELLE);
+        p.setDureeEnCycle(3);
+        p.setPenaliteRetard(500);
+        p.setNbMembreMax(3);
+        adhesions.definirParametres(x.getId(), t.getId(), p);
+        rejoindre(t, x, y);
+        rejoindre(t, x, z);
+        TransactionDao txDao = new TransactionDao();
+
+        // cycle 1 : beneficiaire x ; x et y cotisent, z ne cotise PAS
+        cycles.demarrerCycle(x.getId(), t.getId());
+        verifier("Cycle 1 : aucune dispense (premier tour)", cotisations.etatTour(z.getId(), t.getId()).exemption == null);
+        cotisations.payerCotisation(x.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000010");
+        cotisations.payerCotisation(y.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000011");
+        List<Distribution> v1 = cycles.cloturerCycle(x.getId(), t.getId());
+        verifier("Cycle 1 : x recoit 4 000 (z n'a pas cotise)", v1.get(0).getBeneficiaireId() == x.getId() && Math.abs(v1.get(0).getMontantTotal() - 4000) < 0.005);
+        int dettes = 0;
+        for (Transaction tx : txDao.findByTontine(t.getId())) {
+            if (tx.getType() == TypeTransaction.PENALITE && tx.getStatut().name().equals("EN_ATTENTE")
+                    && tx.getUserId() == z.getId() && tx.getMontant() == 500) {
+                dettes++;
+            }
+        }
+        verifier("z qui devait cotiser sans le faire : penalite de 500 enregistree", dettes == 1);
+        verifier("La penalite impayee n'apparait pas comme un paiement en especes a confirmer", cotisations.paiementsEnAttente(x.getId(), t.getId()).isEmpty());
+
+        // cycle 2 : beneficiaire y ; x (y a cotise pour lui) et z (premier tour) doivent cotiser
+        cycles.demarrerCycle(x.getId(), t.getId());
+        verifier("Cycle 2 : x doit cotiser pour y (y a cotise pour x)", cotisations.etatTour(x.getId(), t.getId()).exemption == null);
+        com.tontine.service.EtatCotisation ez = cotisations.etatTour(z.getId(), t.getId());
+        verifier("Cycle 2 : z doit payer 500 de penalite avec sa cotisation", ez.arrieres == 500 && ez.penalite == 500);
+        cotisations.payerCotisation(x.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000010");
+        cotisations.payerCotisation(y.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000011");
+        cotisations.payerCotisation(z.getId(), t.getId(), 2000, ModePaiement.ORANGE_MONEY, "770000012");
+        verifier("Penalite payee : plus rien de du", cotisations.etatTour(z.getId(), t.getId()).arrieres == 0);
+        List<Distribution> v2 = cycles.cloturerCycle(x.getId(), t.getId());
+        verifier("Cycle 2 : y recoit 6 000 + 500 de penalite = 6 500", v2.get(0).getBeneficiaireId() == y.getId() && Math.abs(v2.get(0).getMontantTotal() - 6500) < 0.005);
+
+        // cycle 3 : beneficiaire z ; z n'avait pas cotise pour x au cycle 1 => x est dispense ; y doit cotiser
+        cycles.demarrerCycle(x.getId(), t.getId());
+        String motif = cotisations.etatTour(x.getId(), t.getId()).exemption;
+        verifier("Cycle 3 : x est dispense (z n'a pas cotise pour lui)", motif != null);
+        verifier("Cycle 3 : y doit cotiser (z a cotise pour lui)", cotisations.etatTour(y.getId(), t.getId()).exemption == null);
+        erreur("Cycle 3 : x ne peut pas cotiser pour z", () -> cotisations.payerCotisation(x.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000010"));
+        verifier("Cycle 3 : le membre dispense n'est pas signale comme manquant", cotisations.membresSansCotisation(t.getId()).size() == 2);
+        cotisations.payerCotisation(y.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000011");
+        cotisations.payerCotisation(z.getId(), t.getId(), 2000, ModePaiement.ORANGE_MONEY, "770000012");
+        List<Distribution> v3 = cycles.cloturerCycle(x.getId(), t.getId());
+        verifier("Cycle 3 : z recoit 4 000 (x dispense)", v3.get(0).getBeneficiaireId() == z.getId() && Math.abs(v3.get(0).getMontantTotal() - 4000) < 0.005);
+        int dettesX = 0;
+        for (Transaction tx : txDao.findByTontine(t.getId())) {
+            if (tx.getUserId() == x.getId() && tx.getType() == TypeTransaction.PENALITE) {
+                dettesX++;
+            }
+        }
+        verifier("Le membre dispense ne subit aucune penalite", dettesX == 0);
+    }
+
+    private static void testReciprociteTirage() throws Exception {
+        System.out.println("-- Tirage au sort : reciprocite des cotisations --");
+        Utilisateur a = inscrire("rt-a");
+        Utilisateur b = inscrire("rt-b");
+        Utilisateur c3 = inscrire("rt-c");
+        Tontine t = admin.validerDemandeCreation(adminId, creation(a.getId(), nomUnique("ReciTirage"),
+                TypeTontine.TIRAGE_AU_SORT, 2000, Frequence.MENSUELLE, 3).getId(), true);
+        ParametresTontine p = new ParametresTontine();
+        p.setDescription("Reciprocite tirage");
+        p.setMontantCotisation(2000);
+        p.setFrequence(Frequence.MENSUELLE);
+        p.setDureeEnCycle(3);
+        p.setPenaliteRetard(500);
+        p.setNbMembreMax(3);
+        adhesions.definirParametres(a.getId(), t.getId(), p);
+        rejoindre(t, a, b);
+        rejoindre(t, a, c3);
+        List<Utilisateur> tous = new ArrayList<>();
+        tous.add(a); tous.add(b); tous.add(c3);
+
+        // cycle 1 : tirage, puis tous cotisent SAUF un membre (qui n'est pas le beneficiaire)
+        cycles.demarrerCycle(a.getId(), t.getId());
+        Tirage t1 = cycles.lancerTirage(a.getId(), t.getId());
+        Utilisateur b1 = null, defaillant = null, payeur = null;
+        for (Utilisateur u : tous) {
+            if (u.getId() == t1.getBeneficiaireId()) {
+                b1 = u;
+            } else if (defaillant == null) {
+                defaillant = u;
+            } else {
+                payeur = u;
+            }
+        }
+        verifier("Tirage : le beneficiaire est connu avant les cotisations", cotisations.etatTour(payeur.getId(), t.getId()).beneficiaire != null);
+        cotisations.payerCotisation(b1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000030");
+        cotisations.payerCotisation(payeur.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000031");
+        List<Distribution> v1 = cycles.cloturerCycle(a.getId(), t.getId());
+        verifier("Cycle 1 : le gagnant recoit 4 000 (un membre n'a pas cotise)", v1.get(0).getBeneficiaireId() == b1.getId() && Math.abs(v1.get(0).getMontantTotal() - 4000) < 0.005);
+
+        // cycle 2 : tirage parmi les deux autres
+        cycles.demarrerCycle(a.getId(), t.getId());
+        verifier("Cycle 2 : le membre defaillant doit payer 500 de penalite de non-cotisation", cotisations.etatTour(defaillant.getId(), t.getId()).arrieres == 500);
+        Tirage t2 = cycles.lancerTirage(a.getId(), t.getId());
+        boolean b2EstDefaillant = t2.getBeneficiaireId() == defaillant.getId();
+        // b1 (deja gagnant) ne doit cotiser pour le nouveau gagnant que si celui-ci avait cotise pour lui au cycle 1
+        boolean b1Dispense = cotisations.etatTour(b1.getId(), t.getId()).exemption != null;
+        verifier("Cycle 2 : le gagnant du cycle 1 est dispense si et seulement si le nouveau gagnant n'avait pas cotise pour lui", b1Dispense == b2EstDefaillant);
+        if (b1Dispense) {
+            final Utilisateur fb1 = b1;
+            erreur("Cycle 2 : le membre dispense ne peut pas cotiser", () -> cotisations.payerCotisation(fb1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000030"));
+        } else {
+            cotisations.payerCotisation(b1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000030");
+        }
+        cotisations.payerCotisation(defaillant.getId(), t.getId(), 2000 , ModePaiement.WAVE, "770000032");
+        verifier("Cycle 2 : la penalite impayee a ete reglee avec la cotisation", cotisations.etatTour(defaillant.getId(), t.getId()).arrieres == 0);
+    }
+
     private static void testTirageAuSort() throws Exception {
         System.out.println("-- Type 3 : tirage au sort --");
         Utilisateur k = inscrire("ts-gerant");
@@ -357,10 +558,12 @@ public class TestServices {
         for (int cycle = 1; cycle <= 3; cycle++) {
             cycles.demarrerCycle(k.getId(), t.getId());
             erreur("Cloture impossible sans tirage (cycle " + cycle + ")", () -> cycles.cloturerCycle(k.getId(), t.getId()));
+            erreur("Tirage au sort : cotisation impossible avant le tirage (cycle " + cycle + ")",
+                    () -> cotisations.payerCotisation(k.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000020"));
+            Tirage ti = cycles.lancerTirage(k.getId(), t.getId());
             cotisations.payerCotisation(k.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000020");
             cotisations.payerCotisation(p1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000021");
             cotisations.payerCotisation(p2.getId(), t.getId(), 2000, ModePaiement.ORANGE_MONEY, "770000022");
-            Tirage ti = cycles.lancerTirage(k.getId(), t.getId());
             erreur("Un seul tirage par cycle (cycle " + cycle + ")", () -> cycles.lancerTirage(k.getId(), t.getId()));
             gagnants.add(ti.getBeneficiaireId());
             List<Distribution> v = cycles.cloturerCycle(k.getId(), t.getId());

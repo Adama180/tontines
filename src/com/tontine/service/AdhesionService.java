@@ -38,32 +38,32 @@ public class AdhesionService {
     public Adhesion validerDemandeAdhesion(int gerantId, int demandeId, boolean accepter) {
         DemandeAdhesion d = demandeDao.findById(demandeId);
         Controles.exiger(d != null, "Demande introuvable.");
-        Controles.exiger(d.getStatut() == StatutDemande.EN_ATTENTE, "Cette demande a deja ete traitee.");
+        Controles.exiger(d.getStatut() == StatutDemande.EN_ATTENTE, "Cette demande a d\u00e9j\u00e0 \u00e9t\u00e9 trait\u00e9e.");
         Tontine t = Controles.tontine(d.getTontineId());
         Controles.exigerGerant(t, gerantId);
 
         if (!accepter) {
             demandeDao.changerStatut(d.getId(), StatutDemande.REFUSEE);
             NotificationService.notifier(d.getUserId(),
-                    "Votre demande pour la tontine " + t.getNom() + " a ete refusee.", "ADHESION");
+                    "Votre demande pour la tontine " + t.getNom() + " a \u00e9t\u00e9 refus\u00e9e.", "ADHESION");
             Controles.audit(gerantId, "ADHESION_REFUSEE", "Demande " + d.getId() + " - tontine " + t.getNom());
             return null;
         }
 
-        Controles.exiger(t.getStatut() == StatutTontine.ACTIVE, "Cette tontine est cloturee.");
+        Controles.exiger(t.getStatut() == StatutTontine.ACTIVE, "Cette tontine est cl\u00f4tur\u00e9e.");
         if (!t.isFondsCommun()) {
             Controles.exiger(cycleDao.findEnCours(t.getId()) == null,
-                    "Dans une tontine a tour de role ou a tirage au sort, un membre ne peut etre accepte "
-                            + "qu'entre deux cycles. Attendez la cloture du cycle en cours.");
+                    "Dans une tontine \u00e0 tour de r\u00f4le ou \u00e0 tirage au sort, un membre ne peut \u00eatre accept\u00e9 "
+                            + "qu'entre deux cycles. Attendez la cl\u00f4ture du cycle en cours.");
         }
         Controles.exiger(adhesionDao.compterActifs(t.getId()) < t.getNbMembreMax(),
-                "La tontine est complete (" + t.getNbMembreMax() + " membres).");
+                "La tontine est compl\u00e8te (" + t.getNbMembreMax() + " membres).");
         Utilisateur u = Controles.utilisateur(d.getUserId());
 
         int ordre = prochainOrdre(t.getId());
         Adhesion a = adhesionDao.findByTontineEtUser(t.getId(), u.getId());
         if (a != null) {
-            Controles.exiger(a.getStatut() == StatutAdhesion.INACTIF, "Cette personne est deja membre.");
+            Controles.exiger(a.getStatut() == StatutAdhesion.INACTIF, "Cette personne est d\u00e9j\u00e0 membre.");
             adhesionDao.changerStatut(a.getId(), StatutAdhesion.ACTIF);
             adhesionDao.definirOrdreTour(a.getId(), ordre);
             a = adhesionDao.findById(a.getId());
@@ -76,7 +76,7 @@ public class AdhesionService {
         }
         demandeDao.changerStatut(d.getId(), StatutDemande.ACCEPTEE);
         NotificationService.notifier(u.getId(),
-                "Bienvenue ! Vous etes maintenant membre de la tontine " + t.getNom() + ".", "ADHESION");
+                "Bienvenue ! Vous \u00eates maintenant membre de la tontine " + t.getNom() + ".", "ADHESION");
         Controles.audit(gerantId, "ADHESION_ACCEPTEE", u.getNomComplet() + " - tontine " + t.getNom());
         return a;
     }
@@ -95,25 +95,25 @@ public class AdhesionService {
     /** Desactive un membre. Impossible s'il a un solde, un pret non rembourse, ou est le gerant. */
     public void desactiverMembre(int gerantId, int adhesionId) {
         Adhesion a = adhesionDao.findById(adhesionId);
-        Controles.exiger(a != null, "Adhesion introuvable.");
+        Controles.exiger(a != null, "Adh\u00e9sion introuvable.");
         Tontine t = Controles.tontine(a.getTontineId());
         Controles.exigerGerant(t, gerantId);
-        Controles.exiger(a.getUserId() != gerantId, "Le gerant ne peut pas se desactiver lui-meme.");
-        Controles.exiger(a.getStatut() == StatutAdhesion.ACTIF, "Ce membre est deja desactive.");
+        Controles.exiger(a.getUserId() != gerantId, "Le g\u00e9rant ne peut pas se d\u00e9sactiver lui-m\u00eame.");
+        Controles.exiger(a.getStatut() == StatutAdhesion.ACTIF, "Ce membre est d\u00e9j\u00e0 d\u00e9sactiv\u00e9.");
         Controles.exiger(Math.abs(a.getSolde()) < 0.005,
-                "Ce membre a un solde dans la tontine : il doit etre regle avant la desactivation.");
+                "Ce membre a un solde dans la tontine : il doit \u00eatre r\u00e9gl\u00e9 avant la d\u00e9sactivation.");
         Controles.exiger(pretDao.findEnCours(t.getId(), a.getUserId()).isEmpty()
                 && pretDao.findByTontineEtStatut(t.getId(), StatutPret.EN_ATTENTE).stream()
                         .noneMatch(p -> p.getUserId() == a.getUserId()),
-                "Ce membre a un pret en cours.");
+                "Ce membre a un pr\u00eat en cours.");
         if (!t.isFondsCommun()) {
             Controles.exiger(cycleDao.findEnCours(t.getId()) == null,
-                    "Un membre ne peut etre desactive qu'entre deux cycles.");
+                    "Un membre ne peut \u00eatre d\u00e9sactiv\u00e9 qu'entre deux cycles.");
         }
         adhesionDao.changerStatut(a.getId(), StatutAdhesion.INACTIF);
         NotificationService.notifier(a.getUserId(),
-                "Vous avez ete retire de la tontine " + t.getNom() + ".", "ADHESION");
-        Controles.audit(gerantId, "MEMBRE_DESACTIVE", "Adhesion " + a.getId() + " - tontine " + t.getNom());
+                "Vous avez \u00e9t\u00e9 retir\u00e9 de la tontine " + t.getNom() + ".", "ADHESION");
+        Controles.audit(gerantId, "MEMBRE_DESACTIVE", "Adh\u00e9sion " + a.getId() + " - tontine " + t.getNom());
     }
 
     /** Definit les regles de la tontine (entre deux cycles uniquement). */
@@ -121,18 +121,25 @@ public class AdhesionService {
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
         Controles.exiger(cycleDao.findEnCours(tontineId) == null,
-                "Les parametres ne peuvent etre modifies qu'entre deux cycles.");
-        Controles.exiger(p.getFrequence() != null, "Choisissez une frequence.");
-        Controles.exiger(p.getMontantCotisation() > 0, "Le montant de la cotisation doit etre positif.");
-        Controles.exiger(p.getPenaliteRetard() >= 0, "La penalite de retard ne peut pas etre negative.");
-        Controles.exiger(p.getDureeEnCycle() >= 1, "La duree d'un cycle doit etre d'au moins 1 periode.");
+                "Les param\u00e8tres ne peuvent \u00eatre modifi\u00e9s qu'entre deux cycles.");
+        Controles.exiger(p.getFrequence() != null, "Choisissez une fr\u00e9quence.");
+        if (t.isFondsCommun()) {
+            Controles.exiger(p.getMontantCotisation() >= CotisationService.MIN_FONDS_COMMUN,
+                    "Le montant minimum de cotisation doit \u00eatre d'au moins " + Format.montant(CotisationService.MIN_FONDS_COMMUN) + ".");
+            Controles.exiger(p.getMontantMaxCotisation() != null && p.getMontantMaxCotisation() >= p.getMontantCotisation(),
+                    "Le montant maximum doit \u00eatre sup\u00e9rieur ou \u00e9gal au montant minimum.");
+        } else {
+            Controles.exiger(p.getMontantCotisation() > 0, "Le montant de la cotisation doit \u00eatre positif.");
+        }
+        Controles.exiger(p.getPenaliteRetard() >= 0, "La p\u00e9nalit\u00e9 de retard ne peut pas \u00eatre n\u00e9gative.");
+        Controles.exiger(p.getDureeEnCycle() >= 1, "La dur\u00e9e d'un cycle doit \u00eatre d'au moins 1 p\u00e9riode.");
         Controles.exiger(p.getNbMembreMax() >= 2 && p.getNbMembreMax() >= adhesionDao.compterActifs(tontineId),
-                "Le nombre maximum de membres doit etre au moins 2 et au moins egal au nombre de membres actuels.");
+                "Le nombre maximum de membres doit \u00eatre au moins 2 et au moins \u00e9gal au nombre de membres actuels.");
         if (t.isFondsCommun()) {
             Controles.exiger(p.getTauxInteret() != null && p.getTauxInteret() >= 0 && p.getTauxInteret() <= 100,
-                    "Le taux d'interet doit etre compris entre 0 et 100 %.");
+                    "Le taux d'int\u00e9r\u00eat doit \u00eatre compris entre 0 et 100 %.");
             Controles.exiger(p.getDureeMaxPret() != null && p.getDureeMaxPret() >= 1,
-                    "La duree maximale d'un pret doit etre d'au moins 1 jour.");
+                    "La dur\u00e9e maximale d'un pr\u00eat doit \u00eatre d'au moins 1 jour.");
             t.setTauxInteret(p.getTauxInteret());
             t.setDureeMaxPret(p.getDureeMaxPret());
         } else {
@@ -141,6 +148,7 @@ public class AdhesionService {
         }
         t.setDescription(p.getDescription());
         t.setMontantCotisation(p.getMontantCotisation());
+        t.setMontantMaxCotisation(t.isFondsCommun() ? p.getMontantMaxCotisation() : null);
         t.setFrequence(p.getFrequence());
         t.setDureeEnCycle(p.getDureeEnCycle());
         t.setPenaliteRetard(p.getPenaliteRetard());

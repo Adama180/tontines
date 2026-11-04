@@ -29,9 +29,10 @@ public final class Libelles {
     public static String descriptionType(TypeTontine t) {
         switch (t) {
         case FONDS_COMMUN:
-            return "Les cotisations s'accumulent pendant le cycle et les membres peuvent emprunter "
-                    + "sur ce fonds avec un int\u00e9r\u00eat. En fin de cycle, chacun re\u00e7oit sa cotisation "
-                    + "cumul\u00e9e plus une part \u00e9gale des int\u00e9r\u00eats et p\u00e9nalit\u00e9s.";
+            return "Chaque membre cotise une fois par p\u00e9riode (semaine, mois ou ann\u00e9e) pendant tout le cycle, "
+                    + "d\u00e9marr\u00e9 une seule fois. Les membres peuvent emprunter sur ce fonds avec un int\u00e9r\u00eat ; "
+                    + "toute cotisation en retard co\u00fbte une p\u00e9nalit\u00e9. \u00c0 la fin du cycle, chacun re\u00e7oit sa "
+                    + "cagnotte plus une part \u00e9gale des p\u00e9nalit\u00e9s et des int\u00e9r\u00eats.";
         case TOUR_DE_ROLE:
             return "Montant fixe identique pour tous. \u00c0 chaque p\u00e9riode, un membre re\u00e7oit le total "
                     + "collect\u00e9, selon un ordre qui peut \u00eatre anticip\u00e9 sur demande au g\u00e9rant.";
@@ -46,12 +47,40 @@ public final class Libelles {
             return "";
         }
         switch (f) {
+        case JOURNALIERE:
+            return "Journali\u00e8re";
         case HEBDOMADAIRE:
             return "Hebdomadaire";
         case MENSUELLE:
             return "Mensuelle";
         default:
             return "Annuelle";
+        }
+    }
+
+    /** Cotisation affichee : intervalle pour un fonds commun, montant fixe sinon. */
+    public static String cotisation(com.tontine.model.Tontine t) {
+        if (t.isFondsCommun()) {
+            return t.getMontantMaxCotisation() == null ? "\u00e0 d\u00e9finir par le g\u00e9rant"
+                    : Format.montant(t.getMontantCotisation()) + " \u00e0 " + Format.montant(t.getMontantMaxCotisation());
+        }
+        return Format.montant(t.getMontantCotisation());
+    }
+
+    /** Nom de la periode de cotisation : semaine, mois ou annee. */
+    public static String periode(Frequence f) {
+        if (f == null) {
+            return "";
+        }
+        switch (f) {
+        case JOURNALIERE:
+            return "jour";
+        case HEBDOMADAIRE:
+            return "semaine";
+        case MENSUELLE:
+            return "mois";
+        default:
+            return "ann\u00e9e";
         }
     }
 

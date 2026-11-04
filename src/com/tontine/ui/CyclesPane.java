@@ -14,6 +14,7 @@ import com.tontine.service.ConsultationService;
 import com.tontine.service.CotisationService;
 import com.tontine.service.CycleService;
 import com.tontine.service.Format;
+import com.tontine.service.Libelles;
 import com.tontine.service.MembreService;
 
 import javafx.scene.control.Button;
@@ -56,7 +57,11 @@ public class CyclesPane extends PaneGestion {
                 succes("Le cycle " + c.getNumero() + " a d\u00e9marr\u00e9. Les membres sont pr\u00e9venus.");
             }));
             etat = Composants.carte(titreSection("Aucun cycle en cours"),
-                    vide("D\u00e9marrez un cycle pour que les membres puissent cotiser" + (t.isFondsCommun() ? " et emprunter." : ".")),
+                    vide((t.isFondsCommun()
+                            ? "Le cycle se d\u00e9marre une seule fois : il dure " + t.getDureeEnCycle() + " p\u00e9riode(s) ("
+                                    + Libelles.periode(t.getFrequence()) + ") et chaque membre y cotise une fois par "
+                                    + Libelles.periode(t.getFrequence()) + ". Les membres pourront aussi emprunter."
+                            : "D\u00e9marrez un cycle pour que les membres puissent cotiser.")),
                     boutonDemarrer);
         } else {
             boutonCloturer = Composants.primaire("Cl\u00f4turer le cycle " + cycle.getNumero());
@@ -77,7 +82,8 @@ public class CyclesPane extends PaneGestion {
             }));
             etat = Composants.carte(titreSection("Cycle " + cycle.getNumero() + " en cours depuis le " + cycle.getDateDebut()),
                     vide(t.isFondsCommun()
-                            ? "\u00c0 la cl\u00f4ture, chaque membre re\u00e7oit sa cotisation cumul\u00e9e plus une part \u00e9gale des int\u00e9r\u00eats et p\u00e9nalit\u00e9s. "
+                            ? "Fin pr\u00e9vue le " + Format.date(CotisationService.finDeCycle(cycle, t)) + ". \u00c0 la fin, chaque membre re\u00e7oit "
+                                    + "sa cagnotte plus une part \u00e9gale des p\u00e9nalit\u00e9s de retard et des int\u00e9r\u00eats. "
                                     + "Tous les pr\u00eats doivent \u00eatre rembours\u00e9s et les paiements en esp\u00e8ces confirm\u00e9s."
                             : "\u00c0 la cl\u00f4ture, le b\u00e9n\u00e9ficiaire du cycle re\u00e7oit le total collect\u00e9. "
                                     + "Les paiements en esp\u00e8ces doivent \u00eatre confirm\u00e9s."),

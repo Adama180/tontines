@@ -16,6 +16,7 @@ public class TontineDao extends BaseDao {
         o.setDescription(rs.getString("description"));
         o.setType(enumOf(TypeTontine.class, rs.getString("type")));
         o.setMontantCotisation(rs.getDouble("montant_cotisation"));
+        o.setMontantMaxCotisation(getDoubleObj(rs, "montant_max_cotisation"));
         o.setFrequence(enumOf(Frequence.class, rs.getString("frequence")));
         o.setDureeEnCycle(rs.getInt("duree_en_cycle"));
         o.setPenaliteRetard(rs.getDouble("penalite_retard"));
@@ -39,11 +40,12 @@ public class TontineDao extends BaseDao {
         }
 
         int id = insertReturnId(
-                "INSERT INTO `tontine` (`nom`,`description`,`type`,`montant_cotisation`,`frequence`,`duree_en_cycle`,`penalite_retard`,`nb_membre_max`,`taux_interet`,`duree_max_pret`,`tour_actuel_index`,`gerant_id`,`statut`,`date_creation`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO `tontine` (`nom`,`description`,`type`,`montant_cotisation`,`montant_max_cotisation`,`frequence`,`duree_en_cycle`,`penalite_retard`,`nb_membre_max`,`taux_interet`,`duree_max_pret`,`tour_actuel_index`,`gerant_id`,`statut`,`date_creation`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 o.getNom(),
                 o.getDescription(),
                 o.getType(),
                 o.getMontantCotisation(),
+                o.getMontantMaxCotisation(),
                 o.getFrequence(),
                 o.getDureeEnCycle(),
                 o.getPenaliteRetard(),
@@ -59,11 +61,12 @@ public class TontineDao extends BaseDao {
     }
 
     public boolean update(Tontine o) {
-        return executeUpdate("UPDATE `tontine` SET `nom`=?,`description`=?,`type`=?,`montant_cotisation`=?,`frequence`=?,`duree_en_cycle`=?,`penalite_retard`=?,`nb_membre_max`=?,`taux_interet`=?,`duree_max_pret`=?,`tour_actuel_index`=?,`gerant_id`=?,`statut`=?,`date_creation`=? WHERE `id`=?",
+        return executeUpdate("UPDATE `tontine` SET `nom`=?,`description`=?,`type`=?,`montant_cotisation`=?,`montant_max_cotisation`=?,`frequence`=?,`duree_en_cycle`=?,`penalite_retard`=?,`nb_membre_max`=?,`taux_interet`=?,`duree_max_pret`=?,`tour_actuel_index`=?,`gerant_id`=?,`statut`=?,`date_creation`=? WHERE `id`=?",
                 o.getNom(),
                 o.getDescription(),
                 o.getType(),
                 o.getMontantCotisation(),
+                o.getMontantMaxCotisation(),
                 o.getFrequence(),
                 o.getDureeEnCycle(),
                 o.getPenaliteRetard(),

@@ -9,6 +9,7 @@ public class ParametresTontine {
     private double montantCotisation;
     private Frequence frequence;
     private int dureeEnCycle;
+    private Double montantMaxCotisation; // fonds commun : montantCotisation = minimum
     private double penaliteRetard;
     private int nbMembreMax;
     private Double tauxInteret;      // fonds commun uniquement (en %)
@@ -18,6 +19,8 @@ public class ParametresTontine {
     public void setDescription(String description) { this.description = description; }
     public double getMontantCotisation() { return montantCotisation; }
     public void setMontantCotisation(double v) { this.montantCotisation = v; }
+    public Double getMontantMaxCotisation() { return montantMaxCotisation; }
+    public void setMontantMaxCotisation(Double v) { this.montantMaxCotisation = v; }
     public Frequence getFrequence() { return frequence; }
     public void setFrequence(Frequence frequence) { this.frequence = frequence; }
     public int getDureeEnCycle() { return dureeEnCycle; }

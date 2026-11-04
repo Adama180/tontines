@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table tontine : les règles définies par le gérant (rien n'est codé en dur). */
+/** Table tontine : les r\u00e8gles d\u00e9finies par le g\u00e9rant (rien n'est cod\u00e9 en dur). */
 public class Tontine {
     private int id;
     private String nom;
@@ -11,6 +11,7 @@ public class Tontine {
     private double montantCotisation;
     private Frequence frequence;
     private int dureeEnCycle;
+    private Double montantMaxCotisation; // fonds commun : montantCotisation = minimum, ceci = maximum
     private double penaliteRetard;
     private int nbMembreMax;
     private Double tauxInteret;
@@ -77,6 +78,14 @@ public class Tontine {
 
     public void setDureeEnCycle(int dureeEnCycle) {
         this.dureeEnCycle = dureeEnCycle;
+    }
+
+    public Double getMontantMaxCotisation() {
+        return montantMaxCotisation;
+    }
+
+    public void setMontantMaxCotisation(Double montantMaxCotisation) {
+        this.montantMaxCotisation = montantMaxCotisation;
     }
 
     public double getPenaliteRetard() {

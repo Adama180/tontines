@@ -16,4 +16,9 @@ public final class Format {
         String s = String.format(Locale.FRANCE, entier ? "%,.0f" : "%,.2f", valeur);
         return s.replace('\u202f', ' ').replace('\u00a0', ' ') + " " + DEVISE;
     }
+
+    /** Exemple : 2026-10-21 -> "21/10/2026". */
+    public static String date(java.time.LocalDate d) {
+        return d == null ? "" : String.format("%02d/%02d/%04d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
+    }
 }
