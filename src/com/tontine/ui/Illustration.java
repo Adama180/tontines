@@ -30,7 +30,7 @@ public class Illustration extends Pane {
         exemple.setStyle(exemple.getStyle() + "-fx-background-color: #fdf1cc; -fx-background-radius: 10; -fx-padding: 2 8 2 8;");
         HBox haut = new HBox(titre, espace(), exemple);
         haut.setAlignment(Pos.CENTER_LEFT);
-        Label montant = texte("120 000 FCFA", 29, "#166534", "Poppins Bold");
+        Label montant = texte("120 000 FCFA", 29, "#2d3036", "Poppins Bold");
 
         Rectangle piste = new Rectangle(266, 10);
         piste.setArcWidth(10);
@@ -39,7 +39,7 @@ public class Illustration extends Pane {
         Rectangle rempli = new Rectangle(200, 10);
         rempli.setArcWidth(10);
         rempli.setArcHeight(10);
-        rempli.setFill(Color.web("#166534"));
+        rempli.setFill(Color.web("#d4a017"));
         StackPane barre = new StackPane(piste, rempli);
         StackPane.setAlignment(rempli, Pos.CENTER_LEFT);
         Label etat = texte("6 membres sur 8 ont cotis\u00e9", 12, "#6b7280", "Poppins");
@@ -50,8 +50,8 @@ public class Illustration extends Pane {
             ((StackPane) a).setStyle("-fx-effect: dropshadow(gaussian, rgba(255,255,255,1), 0, 3, 0, 0);");
             avatars.getChildren().add(a);
         }
-        Label plus = texte("+3", 11, "#166534", "Poppins SemiBold");
-        plus.setStyle(plus.getStyle() + "-fx-background-color: #dcfce7; -fx-background-radius: 20; -fx-padding: 8 10 8 10;");
+        Label plus = texte("+3", 11, "#6b5410", "Poppins SemiBold");
+        plus.setStyle(plus.getStyle() + "-fx-background-color: #f8efd0; -fx-background-radius: 20; -fx-padding: 8 10 8 10;");
         avatars.getChildren().add(plus);
 
         HBox modes = new HBox(8, pastille("Wave"), pastille("Orange Money"), pastille("Esp\u00e8ces"));
@@ -64,7 +64,7 @@ public class Illustration extends Pane {
                 + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 30, 0, 0, 12);");
 
         // ---- elements flottants
-        HBox c1 = new HBox(8, Icones.icone("coche", 18), texte("Cotisation confirm\u00e9e", 12, "#166534", "Poppins SemiBold"));
+        HBox c1 = new HBox(8, Icones.icone("coche", 18), texte("Cotisation confirm\u00e9e", 12, "#2d3036", "Poppins SemiBold"));
         c1.setAlignment(Pos.CENTER_LEFT);
         c1.setStyle("-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 8 16 8 12;"
                 + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 16, 0, 0, 6);");
@@ -74,7 +74,7 @@ public class Illustration extends Pane {
 
         HBox c2 = new HBox(8, Icones.icone("portefeuille", 18), texte("Versement re\u00e7u : 20 000 FCFA", 12, "#ffffff", "Poppins SemiBold"));
         c2.setAlignment(Pos.CENTER_LEFT);
-        c2.setStyle("-fx-background-color: #166534; -fx-background-radius: 20; -fx-padding: 9 16 9 12;"
+        c2.setStyle("-fx-background-color: #2d3036; -fx-background-radius: 20; -fx-padding: 9 16 9 12;"
                 + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 16, 0, 0, 6);");
         c2.getChildren().get(0).setStyle("-fx-opacity: 1;");
         c2.setLayoutX(150);
@@ -85,7 +85,7 @@ public class Illustration extends Pane {
         piece.setFill(Color.web("#d4a017"));
         piece.setStroke(Color.web("#f1c94a"));
         piece.setStrokeWidth(4);
-        Label f = texte("F", 22, "#0b2e1b", "Poppins Bold");
+        Label f = texte("F", 22, "#22252b", "Poppins Bold");
         StackPane coin = new StackPane(piece, f);
         coin.setLayoutX(362);
         coin.setLayoutY(24);
@@ -105,8 +105,8 @@ public class Illustration extends Pane {
     }
 
     private static Label pastille(String t) {
-        Label l = texte(t, 11, "#166534", "Poppins Medium");
-        l.setStyle(l.getStyle() + "-fx-background-color: #f0f9f3; -fx-background-radius: 14; -fx-padding: 4 10 4 10; -fx-border-color: #cfe8d7; -fx-border-radius: 14;");
+        Label l = texte(t, 11, "#5b4a12", "Poppins Medium");
+        l.setStyle(l.getStyle() + "-fx-background-color: #faf7ec; -fx-background-radius: 14; -fx-padding: 4 10 4 10; -fx-border-color: #eadfb8; -fx-border-radius: 14;");
         return l;
     }
 

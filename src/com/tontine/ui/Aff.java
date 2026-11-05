@@ -109,9 +109,9 @@ public final class Aff {
         case "PARAMETRES_MODIFIES":
             return "Param\u00e8tres modifi\u00e9s";
         case "CYCLE_DEMARRE":
-            return "Cycle d\u00e9marr\u00e9";
+            return "Cycle / tour d\u00e9marr\u00e9";
         case "CYCLE_CLOTURE":
-            return "Cycle cl\u00f4tur\u00e9";
+            return "Cycle / tour cl\u00f4tur\u00e9";
         case "TOUR_ANTICIPE_ACCEPTE":
             return "Tour anticip\u00e9 accept\u00e9";
         case "TOUR_ANTICIPE_REFUSE":

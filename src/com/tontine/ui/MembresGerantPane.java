@@ -33,7 +33,7 @@ public class MembresGerantPane extends PaneGestion {
         Tontine t = consultation.detail(tontine.getId());
         getChildren().add(vide(consultation.nombreMembres(t.getId()) + " membre(s) actif(s) sur " + t.getNbMembreMax()
                 + ". Un membre ne peut \u00eatre retir\u00e9 que s'il n'a ni solde ni pr\u00eat en cours"
-                + (t.isFondsCommun() ? "." : " et seulement entre deux cycles.")));
+                + (t.isFondsCommun() ? "." : " et seulement entre deux tours.")));
 
         for (LigneMembre m : adhesions.listerMembres(gerant.getId(), t.getId())) {
             Adhesion a = m.getAdhesion();

@@ -12,6 +12,7 @@ import com.tontine.model.Utilisateur;
 import com.tontine.service.AdhesionService;
 import com.tontine.service.ConsultationService;
 import com.tontine.service.CotisationService;
+import com.tontine.service.Libelles;
 import com.tontine.service.Format;
 import com.tontine.service.LigneMembre;
 import com.tontine.service.MembreService;
@@ -80,7 +81,7 @@ public class EspecesPane extends PaneGestion {
         }));
         VBox formulaire = Composants.carte(titreSection("Enregistrer une cotisation re\u00e7ue en esp\u00e8ces"));
         if (!cycle) {
-            formulaire.getChildren().add(vide("Aucun cycle en cours : d\u00e9marrez un cycle avant d'enregistrer une cotisation."));
+            formulaire.getChildren().add(vide("Aucun " + Libelles.cycle(t) + " en cours : d\u00e9marrez un " + Libelles.cycle(t) + " avant d'enregistrer une cotisation."));
         } else {
             formulaire.getChildren().addAll(
                     vide("Pour votre propre cotisation, payez par Wave ou Orange Money (un paiement en esp\u00e8ces de votre part est confirm\u00e9 par l'administrateur)."),

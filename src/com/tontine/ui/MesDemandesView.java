@@ -47,8 +47,7 @@ public class MesDemandesView extends VBox {
         }
         for (DemandeCreation d : creations) {
             getChildren().add(ligne(d.getNomSouhaite(),
-                    Libelles.type(d.getTypeSouhaite()) + " - " + Format.montant(d.getMontant()) + " ("
-                            + Libelles.frequence(d.getFrequence()) + ") - " + d.getNbMembre() + " membres - envoy\u00e9e le "
+                    Libelles.type(d.getTypeSouhaite()) + " - " + Libelles.reglesDemande(d) + " - envoy\u00e9e le "
                             + Aff.date(d.getDateEnvoi()),
                     Aff.badgeStatut(d.getStatut())));
         }

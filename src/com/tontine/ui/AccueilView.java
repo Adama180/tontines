@@ -31,14 +31,13 @@ public class AccueilView extends BorderPane {
 
     private final java.util.List<Region> sections = new java.util.ArrayList<>();
     private Region bandeRef;
-    private Region ctaRef;
 
     public AccueilView() {
         getStyleClass().add("page");
-        setTop(new BarreNavigation());
+        setTop(new BarreNavigation(false));
 
         VBox contenu = new VBox();
-        contenu.getChildren().addAll(hero(), bandeChiffres(), etapes(), types(), atouts(), appelAction(), pied());
+        contenu.getChildren().addAll(hero(), bandeChiffres(), etapes(), types(), atouts(), pied());
         ScrollPane defilement = new ScrollPane(contenu);
         defilement.setFitToWidth(true);
         defilement.getStyleClass().add("defilement");
@@ -52,9 +51,6 @@ public class AccueilView extends BorderPane {
             }
             if (bandeRef != null) {
                 VBox.setMargin(bandeRef, etroit ? new Insets(-40, 16, 0, 16) : new Insets(-46, 48, 0, 48));
-            }
-            if (ctaRef != null) {
-                VBox.setMargin(ctaRef, etroit ? new Insets(8, 16, 28, 16) : new Insets(10, 48, 48, 48));
             }
         });
     }
@@ -81,9 +77,7 @@ public class AccueilView extends BorderPane {
         creer.setOnAction(e -> Nav.aller(PagePublique.creerTontine()));
         FlowPane actions = new FlowPane(12, 12, explorer, creer);
 
-        FlowPane points = new FlowPane(22, 8, point("Gratuit \u00e0 explorer, sans compte"), point("Valid\u00e9 par un g\u00e9rant"));
-
-        VBox gauche = new VBox(20, puces, titre, texte, actions, points);
+        VBox gauche = new VBox(20, puces, titre, texte, actions);
         gauche.setPrefWidth(520);
         gauche.setMaxWidth(560);
 
@@ -110,7 +104,7 @@ public class AccueilView extends BorderPane {
         Circle c1 = new Circle(230, Color.web("#ffffff", 0.05));
         c1.centerXProperty().bind(decor.widthProperty().multiply(0.95));
         c1.setCenterY(40);
-        Circle c2 = new Circle(150, Color.web("#d4a017", 0.10));
+        Circle c2 = new Circle(150, Color.web("#d4a017", 0.14));
         c2.setCenterX(40);
         c2.centerYProperty().bind(decor.heightProperty().multiply(0.95));
         Circle c3 = new Circle(60, Color.web("#ffffff", 0.06));
@@ -136,15 +130,6 @@ public class AccueilView extends BorderPane {
         return h;
     }
 
-    private Node point(String texte) {
-        Node ic = Icones.icone("coche", 18);
-        ((Group) ic).getChildren().forEach(n -> n.getStyleClass().add("icone-claire"));
-        HBox h = new HBox(8, ic, new Label(texte));
-        h.setAlignment(Pos.CENTER_LEFT);
-        h.getStyleClass().add("hero-point");
-        return h;
-    }
-
     // ------------------------------------------------------------------ chiffres de la plateforme
 
     private Node bandeChiffres() {
@@ -165,9 +150,7 @@ public class AccueilView extends BorderPane {
             Label l = new Label("Soyez parmi les premiers : cr\u00e9ez votre tontine en quelques minutes.");
             l.getStyleClass().add("carte-titre");
             l.setWrapText(true);
-            Button b = Composants.primaire("Commencer");
-            b.setOnAction(e -> Nav.aller(PagePublique.creerTontine()));
-            flux.getChildren().addAll(l, b);
+            flux.getChildren().add(l);
         }
         flux.setMinWidth(0);
         StackPane bande = new StackPane(flux);
@@ -238,9 +221,7 @@ public class AccueilView extends BorderPane {
         Label nom = new Label(Libelles.type(type));
         nom.getStyleClass().add("carte-titre");
         Label desc = Composants.sousTitre(Libelles.descriptionType(type));
-        Button voir = Composants.contour("Voir les tontines");
-        voir.setOnAction(e -> Nav.aller(PagePublique.explorer()));
-        VBox c = Composants.carte(Composants.iconeRonde(icone, variante), nom, desc, ligneCoche(point1), ligneCoche(point2), voir);
+        VBox c = Composants.carte(Composants.iconeRonde(icone, variante), nom, desc, ligneCoche(point1), ligneCoche(point2));
         c.getStyleClass().addAll("carte-survol", classe);
         c.setPrefWidth(330);
         c.setMinWidth(260);
@@ -283,35 +264,7 @@ public class AccueilView extends BorderPane {
         return c;
     }
 
-    // ------------------------------------------------------------------ appel a l'action et pied de page
-
-    private Node appelAction() {
-        Label t = new Label("Pr\u00eat \u00e0 lancer votre tontine ?");
-        t.getStyleClass().add("cta-titre");
-        t.setWrapText(true);
-        Label d = new Label("Cr\u00e9ez votre compte, d\u00e9posez votre demande : l'administrateur la valide et vous voil\u00e0 g\u00e9rant.");
-        d.getStyleClass().add("cta-texte");
-        d.setWrapText(true);
-        Button creer = Composants.or("Cr\u00e9er ma tontine");
-        creer.setOnAction(e -> Nav.aller(PagePublique.creerTontine()));
-        Button compte = Composants.contourClair("J'ai d\u00e9j\u00e0 un compte");
-        compte.setOnAction(e -> Nav.aller(new ConnexionView(null)));
-        FlowPane actions = new FlowPane(12, 12, creer, compte);
-        VBox texte = new VBox(8, t, d);
-        texte.setPrefWidth(520);
-        FlowPane ligne = new FlowPane(30, 20, texte, actions);
-        ligne.setAlignment(Pos.CENTER_LEFT);
-        ligne.setRowValignment(javafx.geometry.VPos.CENTER);
-        ligne.setMinWidth(0);
-        StackPane bande = new StackPane(ligne);
-        bande.setMinWidth(0);
-        ctaRef = bande;
-        bande.getStyleClass().add("cta-bande");
-        ligne.prefWrapLengthProperty().bind(javafx.beans.binding.Bindings.max(300, bande.widthProperty().subtract(88)));
-        VBox.setMargin(bande, new Insets(10, 48, 48, 48));
-        Effets.apparition(bande, 0);
-        return bande;
-    }
+    // ------------------------------------------------------------------ pied de page
 
     private Node pied() {
         Label l = new Label("NAT Tontines \u2014 gestion de tontines  \u00b7  " + LocalDate.now().getYear());

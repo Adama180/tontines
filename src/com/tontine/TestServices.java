@@ -39,6 +39,7 @@ import com.tontine.service.AuthService;
 import com.tontine.service.CotisationService;
 import com.tontine.service.CycleService;
 import com.tontine.service.DemandeService;
+import com.tontine.service.Libelles;
 import com.tontine.service.ParametresTontine;
 import com.tontine.service.PretService;
 import com.tontine.service.ServiceException;
@@ -81,6 +82,7 @@ public class TestServices {
             InitBase.creerAdminParDefaut();
             adminId = new UtilisateurDao().findByEmail(InitBase.ADMIN_EMAIL).getId();
             testComptes();
+            testDateHeureCotisation();
             testFondsCommun();
             testTourDeRole();
             testReciprocite();
@@ -133,21 +135,77 @@ public class TestServices {
         Utilisateur a = inscrire("piece-a");
         Utilisateur b = inscrire("piece-b");
         erreur("Creation sans piece d'identite (aucune enregistree)", () -> demandes.soumettreDemandeCreation(
-                a.getId(), nomUnique("SansPiece"), TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3, null));
+                a.getId(), nomUnique("SansPiece"), TypeTontine.TOUR_DE_ROLE, params(TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3), null));
         File pieceA = pieceSure("piece-a");
         DemandeCreation dcA = demandes.soumettreDemandeCreation(a.getId(), nomUnique("AvecPiece"),
-                TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3, pieceA);
+                TypeTontine.TOUR_DE_ROLE, params(TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3), pieceA);
         verifier("Creation avec piece : empreinte et chemin enregistres", dcA.getPieceHash() != null && dcA.getPieceChemin() != null);
         erreur("Meme piece utilisee par une autre personne (creation)", () -> demandes.soumettreDemandeCreation(
-                b.getId(), nomUnique("Doublon"), TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3, pieceA));
+                b.getId(), nomUnique("Doublon"), TypeTontine.TOUR_DE_ROLE, params(TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3), pieceA));
         verifier("Piece deja enregistree : inutile de la renvoyer", demandes.aPieceEnregistree(a.getId())
                 && !demandes.aPieceEnregistree(b.getId())
-                && demandes.soumettreDemandeCreation(a.getId(), nomUnique("Reutilise"), TypeTontine.TOUR_DE_ROLE, 1000,
-                        Frequence.MENSUELLE, 3, null).getPieceHash().equals(dcA.getPieceHash()));
+                && demandes.soumettreDemandeCreation(a.getId(), nomUnique("Reutilise"), TypeTontine.TOUR_DE_ROLE,
+                        params(TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3), null).getPieceHash().equals(dcA.getPieceHash()));
         erreur("Visiteur : creation sans piece d'identite", () -> demandes.inscrireEtDemanderCreation("X", "Y",
                 "visiteur-sans-piece@test.tontine", "6177700001", "secret1", nomUnique("Visiteur"),
-                TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3, null));
+                TypeTontine.TOUR_DE_ROLE, params(TypeTontine.TOUR_DE_ROLE, 1000, Frequence.MENSUELLE, 3), null));
         verifier("Visiteur : aucun compte cree quand la piece manque", new UtilisateurDao().findByEmail("visiteur-sans-piece@test.tontine") == null);
+    }
+
+    /** Date et heure limites de cotisation, definies par le gerant pour chaque frequence. */
+    private static void testDateHeureCotisation() {
+        System.out.println("-- Date et heure de cotisation --");
+        java.time.LocalTime h18 = java.time.LocalTime.of(18, 0);
+        Tontine t = new Tontine();
+        t.setHeureCotisation(h18);
+        t.setFrequence(Frequence.JOURNALIERE);
+        verifier("Journalier : heure limite le jour de l'echeance",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 10, 5), java.time.LocalDate.of(2026, 10, 6))
+                        .equals(LocalDateTime.of(2026, 10, 6, 18, 0)));
+        t.setFrequence(Frequence.HEBDOMADAIRE);
+        t.setJourCotisation(5); // vendredi
+        verifier("Hebdomadaire : le vendredi a 18 h",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 10, 5), java.time.LocalDate.of(2026, 10, 12))
+                        .equals(LocalDateTime.of(2026, 10, 9, 18, 0)));
+        t.setFrequence(Frequence.MENSUELLE);
+        t.setJourCotisation(5);
+        verifier("Mensuel : le 5 du mois",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 1, 10), java.time.LocalDate.of(2026, 2, 10))
+                        .equals(LocalDateTime.of(2026, 2, 5, 18, 0)));
+        verifier("Mensuel : le 5 avant le debut du cycle -> mois precedent",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2026, 2, 3))
+                        .equals(LocalDateTime.of(2026, 1, 5, 18, 0)));
+        t.setJourCotisation(31);
+        verifier("Mensuel : le 31 ramene au dernier jour de fevrier",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 1, 28), java.time.LocalDate.of(2026, 2, 28))
+                        .equals(LocalDateTime.of(2026, 2, 28, 18, 0)));
+        t.setFrequence(Frequence.ANNUELLE);
+        t.setJourCotisation(15);
+        t.setMoisCotisation(3);
+        verifier("Annuel : le 15 mars",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2027, 1, 1))
+                        .equals(LocalDateTime.of(2026, 3, 15, 18, 0)));
+        t.setJourCotisation(null);
+        verifier("Sans jour defini : fin de periode a l'heure choisie",
+                CotisationService.limite(t, java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2027, 1, 1))
+                        .equals(LocalDateTime.of(2027, 1, 1, 18, 0)));
+        ParametresTontine p = new ParametresTontine();
+        p.setMontantCotisation(1000);
+        p.setNbMembreMax(3);
+        p.setDureeEnCycle(1);
+        p.setFrequence(Frequence.ANNUELLE);
+        p.setJourCotisation(31);
+        p.setMoisCotisation(4);
+        erreur("Annuel : 31 avril n'existe pas", () -> p.controler(TypeTontine.TOUR_DE_ROLE, 1));
+        p.setJourCotisation(30);
+        p.controler(TypeTontine.TOUR_DE_ROLE, 1);
+        verifier("Annuel : 30 avril accepte", true);
+        p.setFrequence(Frequence.HEBDOMADAIRE);
+        p.setJourCotisation(8);
+        erreur("Hebdomadaire : jour 8 refuse", () -> p.controler(TypeTontine.TOUR_DE_ROLE, 1));
+        p.setFrequence(Frequence.JOURNALIERE);
+        p.controler(TypeTontine.TOUR_DE_ROLE, 1);
+        verifier("Journalier : jour et mois ignores", p.getJourCotisation() == null && p.getMoisCotisation() == null);
     }
 
     private static void testFondsCommun() throws Exception {
@@ -157,15 +215,6 @@ public class TestServices {
         membreFondsCommun = m1;
         Utilisateur m2 = inscrire("fc-m2");
         Utilisateur intrus = inscrire("fc-intrus");
-
-        DemandeCreation dc = creation(g.getId(), nomUnique("Fonds"), TypeTontine.FONDS_COMMUN,
-                5000, Frequence.MENSUELLE, 3);
-        verifier("Demande de creation en attente", dc.getStatut() == StatutDemande.EN_ATTENTE);
-        erreur("Nom de tontine deja demande", () -> creation(m1.getId(), dc.getNomSouhaite(),
-                TypeTontine.FONDS_COMMUN, 5000, Frequence.MENSUELLE, 3));
-        erreur("Seul l'admin valide une creation", () -> admin.validerDemandeCreation(g.getId(), dc.getId(), true));
-        Tontine t = admin.validerDemandeCreation(adminId, dc.getId(), true);
-        verifier("Tontine creee, demandeur = gerant", t != null && t.getGerantId() == g.getId());
 
         ParametresTontine p = new ParametresTontine();
         p.setDescription("Tontine de test");
@@ -177,22 +226,58 @@ public class TestServices {
         p.setNbMembreMax(3);
         p.setTauxInteret(10.0);
         p.setDureeMaxPret(30);
-        rejoindre(t, g, m1);
-        rejoindre(t, g, m2);
-        erreur("Demarrer un cycle sans conditions de pret", () -> cycles.demarrerCycle(g.getId(), t.getId()));
+        p.setJourCotisation(5);
+        p.setHeureCotisation(java.time.LocalTime.of(18, 0));
+
+        // tous les parametres sont definis AVANT l'envoi de la demande a l'administrateur
         ParametresTontine mauvais = new ParametresTontine();
         mauvais.setMontantCotisation(500);
         mauvais.setMontantMaxCotisation(2000.0);
         mauvais.setFrequence(Frequence.MENSUELLE); mauvais.setDureeEnCycle(12); mauvais.setNbMembreMax(3);
         mauvais.setTauxInteret(10.0); mauvais.setDureeMaxPret(30);
-        erreur("Minimum de cotisation inferieur a 1 000 refuse", () -> adhesions.definirParametres(g.getId(), t.getId(), mauvais));
+        erreur("Minimum de cotisation inferieur a 1 000 refuse", () -> demandes.soumettreDemandeCreation(
+                g.getId(), nomUnique("Mauvais"), TypeTontine.FONDS_COMMUN, mauvais, pieceSure("creation")));
         mauvais.setMontantCotisation(1500);
         mauvais.setMontantMaxCotisation(1000.0);
-        erreur("Maximum inferieur au minimum refuse", () -> adhesions.definirParametres(g.getId(), t.getId(), mauvais));
+        erreur("Maximum inferieur au minimum refuse", () -> demandes.soumettreDemandeCreation(
+                g.getId(), nomUnique("Mauvais"), TypeTontine.FONDS_COMMUN, mauvais, pieceSure("creation")));
         mauvais.setMontantMaxCotisation(null);
-        erreur("Maximum obligatoire pour un fonds commun", () -> adhesions.definirParametres(g.getId(), t.getId(), mauvais));
+        erreur("Maximum obligatoire pour un fonds commun", () -> demandes.soumettreDemandeCreation(
+                g.getId(), nomUnique("Mauvais"), TypeTontine.FONDS_COMMUN, mauvais, pieceSure("creation")));
+        mauvais.setMontantMaxCotisation(2000.0);
+        mauvais.setTauxInteret(null);
+        erreur("Taux d'interet obligatoire pour un fonds commun", () -> demandes.soumettreDemandeCreation(
+                g.getId(), nomUnique("Mauvais"), TypeTontine.FONDS_COMMUN, mauvais, pieceSure("creation")));
+        mauvais.setTauxInteret(10.0);
+        mauvais.setJourCotisation(40);
+        erreur("Jour du mois invalide refuse", () -> demandes.soumettreDemandeCreation(
+                g.getId(), nomUnique("Mauvais"), TypeTontine.FONDS_COMMUN, mauvais, pieceSure("creation")));
+        mauvais.setJourCotisation(null);
+        mauvais.setHeureCotisation(null);
+        erreur("Heure de cotisation obligatoire", () -> demandes.soumettreDemandeCreation(
+                g.getId(), nomUnique("Mauvais"), TypeTontine.FONDS_COMMUN, mauvais, pieceSure("creation")));
+
+        DemandeCreation dc = demandes.soumettreDemandeCreation(g.getId(), nomUnique("Fonds"), TypeTontine.FONDS_COMMUN,
+                p, pieceSure("creation"));
+        verifier("Demande de creation en attente", dc.getStatut() == StatutDemande.EN_ATTENTE);
+        verifier("Demande : tous les parametres enregistres", dc.getPenaliteRetard() == 500 && dc.getJourCotisation() == 5
+                && dc.getHeureCotisation().equals(java.time.LocalTime.of(18, 0)) && dc.getMontantMax() == 2000.0);
+        erreur("Nom de tontine deja demande", () -> creation(m1.getId(), dc.getNomSouhaite(),
+                TypeTontine.FONDS_COMMUN, 5000, Frequence.MENSUELLE, 3));
+        erreur("Seul l'admin valide une creation", () -> admin.validerDemandeCreation(g.getId(), dc.getId(), true));
+        Tontine t = admin.validerDemandeCreation(adminId, dc.getId(), true);
+        verifier("Tontine creee, demandeur = gerant", t != null && t.getGerantId() == g.getId());
+        Tontine tCree = new TontineDao().findById(t.getId());
+        verifier("Tontine creee avec les parametres de la demande (sans page Parametres)",
+                tCree.getPenaliteRetard() == 500 && tCree.getTauxInteret() == 10.0 && tCree.getDureeMaxPret() == 30
+                        && tCree.getDureeEnCycle() == 12 && tCree.getMontantMaxCotisation() == 2000.0
+                        && "Tontine de test".equals(tCree.getDescription()));
+        verifier("Date et heure de cotisation conservees", tCree.getJourCotisation() == 5
+                && tCree.getHeureCotisation().equals(java.time.LocalTime.of(18, 0)));
+        verifier("Horaire en clair", Libelles.horaire(tCree).equals("le 5 de chaque mois avant 18:00"));
+        rejoindre(t, g, m1);
+        rejoindre(t, g, m2);
         erreur("Parametres : reserve au gerant", () -> adhesions.definirParametres(m1.getId(), t.getId(), p));
-        adhesions.definirParametres(g.getId(), t.getId(), p);
         Tontine tParam = new TontineDao().findById(t.getId());
 
         File pieceIntrus = piecesParUser.get(m1.getId()); // piece deja utilisee par m1
@@ -255,7 +340,7 @@ public class TestServices {
         }
         prets.rembourser(g.getId(), p2.getId(), 1100, ModePaiement.ORANGE_MONEY, "770000001");
         verifier("Remboursement en retard : penalite de 500 appliquee", txDao.totalParType(t.getId(), TypeTransaction.PENALITE) == 500);
-        verifier("Prets rembourses, fonds = 4 800 + 500 de penalite", prets.fondsDisponible(t.getId()) == 5300);
+        verifier("Prets rembourses, fonds = 4 800 (la penalite est retiree du solde du gerant, pas payee en plus)", prets.fondsDisponible(t.getId()) == 4800);
         erreur("Pret deja rembourse", () -> prets.rembourser(m1.getId(), p1.getId(), 10, ModePaiement.WAVE, "770000004"));
 
         verifier("Historique complet visible par un membre", cotisations.historiqueTontine(m2.getId(), t.getId()).size() == 9);
@@ -275,7 +360,7 @@ public class TestServices {
             somme += d.getMontantTotal();
         }
         verifier("3 versements en fin de cycle", versements.size() == 3);
-        verifier("Total verse = 5 300 (cotisations 4 500 + interets 300 + penalite 500)", Math.abs(somme - 5300) < 0.005);
+        verifier("Total verse = 4 800 (cotisations 4 500 + interets 300, penalite redistribuee)", Math.abs(somme - 4800) < 0.005);
         verifier("Fonds vide apres cloture", Math.abs(prets.fondsDisponible(t.getId())) < 0.005);
         verifier("Soldes remis a zero", stats.activiteMembre(m1.getId(), t.getId()).getValeurs().get("Mon solde dans la tontine").startsWith("0"));
         // le gerant change l'intervalle entre deux cycles : 1 500 a 3 000
@@ -312,6 +397,7 @@ public class TestServices {
         double penAvant = txDao.totalParType(t.getId(), TypeTransaction.PENALITE);
         cotisations.payerCotisation(g.getId(), t.getId(), 1500, ModePaiement.WAVE, "770000001");
         verifier("Cotisation payee en retard : penalite de 500 enregistree", txDao.totalParType(t.getId(), TypeTransaction.PENALITE) == penAvant + 500);
+        verifier("Cotisation en retard : solde = 1 500 - 500 de penalite = 1 000 (aucun paiement en plus)", new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), g.getId()).getSolde() == 1000);
         cotisations.payerCotisation(m1.getId(), t.getId(), 2500, ModePaiement.ORANGE_MONEY, "770000003");
         verifier("2e cotisation du meme mois autorisee (rattrapage, periode 2 commencee)", cotisations.etatCotisation(g.getId(), t.getId()).peutCotiser);
         verifier("m2 n'a pas cotise : signale au gerant", cotisations.membresSansCotisation(t.getId()).size() >= 1);
@@ -323,7 +409,7 @@ public class TestServices {
         for (Distribution d : v2c) {
             s2 += d.getMontantTotal();
         }
-        verifier("Fin de cycle 2 : tout le fonds (cotisations + penalites) est reparti entre les membres", Math.abs(s2 - potAvant) < 0.005 && potAvant == 5000);
+        verifier("Fin de cycle 2 : tout le fonds (cotisations + penalites) est reparti entre les membres", Math.abs(s2 - potAvant) < 0.005 && potAvant == 4000);
         verifier("Penalites partagees : m2 (qui n'avait rien cotise) recoit une part", v2c.stream().anyMatch(d -> d.getBeneficiaireId() == m2.getId() && d.getMontantTotal() > 0));
         verifier("Fonds vide apres la cloture du cycle 2", Math.abs(prets.fondsDisponible(t.getId())) < 0.005);
     }
@@ -391,8 +477,12 @@ public class TestServices {
         cotisations.enregistrerCotisationEspece(h.getId(), t.getId(), n2.getId(), 3000);
         erreur("Le gerant ne s'enregistre pas ses propres especes", () -> cotisations.enregistrerCotisationEspece(h.getId(), t.getId(), h.getId(), 3000));
         List<Distribution> v1 = cycles.cloturerCycle(h.getId(), t.getId());
-        verifier("Cycle 1 : le gerant recoit 9 000 + 3 penalites de 200 = 9 600",
-                v1.size() == 1 && v1.get(0).getBeneficiaireId() == h.getId() && Math.abs(v1.get(0).getMontantTotal() - 9600) < 0.005);
+        verifier("Cycle 1 : le gerant recoit 9 000 + 3 penalites de 200 - ses propres 200 deduits = 9 400",
+                v1.size() == 1 && v1.get(0).getBeneficiaireId() == h.getId() && Math.abs(v1.get(0).getMontantTotal() - 9400) < 0.005);
+        verifier("Penalites retirees du solde : n1 et n2 doivent chacun 200 (solde -200)",
+                new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), n1.getId()).getSolde() == -200
+                && new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), n2.getId()).getSolde() == -200
+                && new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), h.getId()).getSolde() == 0);
 
         DemandeTourAnticipe d = cycles.demanderTourAnticipe(n2.getId(), t.getId(), "Besoin urgent");
         erreur("Une seule demande de tour anticipe en attente", () -> cycles.demanderTourAnticipe(n2.getId(), t.getId(), "encore"));
@@ -404,14 +494,14 @@ public class TestServices {
         cotisations.payerCotisation(n1.getId(), t.getId(), 3000, ModePaiement.WAVE, "770000011");
         cotisations.payerCotisation(n2.getId(), t.getId(), 3000, ModePaiement.ORANGE_MONEY, "770000012");
         List<Distribution> v2 = cycles.cloturerCycle(h.getId(), t.getId());
-        verifier("Cycle 2 : n2 recoit 9 000", v2.get(0).getBeneficiaireId() == n2.getId() && Math.abs(v2.get(0).getMontantTotal() - 9000) < 0.005);
+        verifier("Cycle 2 : n2 recoit 9 000 - 200 de penalite due = 8 800", v2.get(0).getBeneficiaireId() == n2.getId() && Math.abs(v2.get(0).getMontantTotal() - 8800) < 0.005);
 
         cycles.demarrerCycle(h.getId(), t.getId());
         cotisations.payerCotisation(h.getId(), t.getId(), 3000, ModePaiement.WAVE, "770000010");
         cotisations.payerCotisation(n1.getId(), t.getId(), 3000, ModePaiement.WAVE, "770000011");
         cotisations.payerCotisation(n2.getId(), t.getId(), 3000, ModePaiement.ORANGE_MONEY, "770000012");
         List<Distribution> v3 = cycles.cloturerCycle(h.getId(), t.getId());
-        verifier("Cycle 3 : n1 recoit 9 000", v3.get(0).getBeneficiaireId() == n1.getId());
+        verifier("Cycle 3 : n1 recoit 9 000 - 200 de penalite due = 8 800", v3.get(0).getBeneficiaireId() == n1.getId() && Math.abs(v3.get(0).getMontantTotal() - 8800) < 0.005);
         verifier("Fin du tour : l'ordre recommence", new TontineDao().findById(t.getId()).getTourActuelIndex() == 0);
         verifier("Le beneficiaire de depart redevient le gerant", cycles.prochainBeneficiaire(t.getId()).getId() == h.getId());
         verifier("Soldes remis a zero apres les versements",
@@ -443,28 +533,29 @@ public class TestServices {
         cotisations.payerCotisation(x.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000010");
         cotisations.payerCotisation(y.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000011");
         List<Distribution> v1 = cycles.cloturerCycle(x.getId(), t.getId());
-        verifier("Cycle 1 : x recoit 4 000 (z n'a pas cotise)", v1.get(0).getBeneficiaireId() == x.getId() && Math.abs(v1.get(0).getMontantTotal() - 4000) < 0.005);
+        verifier("Cycle 1 : x recoit 4 000 + 500 de penalite de z = 4 500", v1.get(0).getBeneficiaireId() == x.getId() && Math.abs(v1.get(0).getMontantTotal() - 4500) < 0.005);
         int dettes = 0;
         for (Transaction tx : txDao.findByTontine(t.getId())) {
-            if (tx.getType() == TypeTransaction.PENALITE && tx.getStatut().name().equals("EN_ATTENTE")
+            if (tx.getType() == TypeTransaction.PENALITE && tx.getStatut().name().equals("CONFIRMEE")
                     && tx.getUserId() == z.getId() && tx.getMontant() == 500) {
                 dettes++;
             }
         }
-        verifier("z qui devait cotiser sans le faire : penalite de 500 enregistree", dettes == 1);
+        verifier("z qui devait cotiser sans le faire : penalite de 500 retiree de son solde (-500)", dettes == 1
+                && new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), z.getId()).getSolde() == -500);
         verifier("La penalite impayee n'apparait pas comme un paiement en especes a confirmer", cotisations.paiementsEnAttente(x.getId(), t.getId()).isEmpty());
 
         // cycle 2 : beneficiaire y ; x (y a cotise pour lui) et z (premier tour) doivent cotiser
         cycles.demarrerCycle(x.getId(), t.getId());
         verifier("Cycle 2 : x doit cotiser pour y (y a cotise pour x)", cotisations.etatTour(x.getId(), t.getId()).exemption == null);
         com.tontine.service.EtatCotisation ez = cotisations.etatTour(z.getId(), t.getId());
-        verifier("Cycle 2 : z doit payer 500 de penalite avec sa cotisation", ez.arrieres == 500 && ez.penalite == 500);
+        verifier("Cycle 2 : z garde un solde de -500 et cotise normalement (rien a payer en plus)", ez.arrieres == 0 && ez.penalite == 0);
         cotisations.payerCotisation(x.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000010");
         cotisations.payerCotisation(y.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000011");
         cotisations.payerCotisation(z.getId(), t.getId(), 2000, ModePaiement.ORANGE_MONEY, "770000012");
-        verifier("Penalite payee : plus rien de du", cotisations.etatTour(z.getId(), t.getId()).arrieres == 0);
         List<Distribution> v2 = cycles.cloturerCycle(x.getId(), t.getId());
-        verifier("Cycle 2 : y recoit 6 000 + 500 de penalite = 6 500", v2.get(0).getBeneficiaireId() == y.getId() && Math.abs(v2.get(0).getMontantTotal() - 6500) < 0.005);
+        verifier("z reste a -500 (recupere a son tour)", new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), z.getId()).getSolde() == -500);
+        verifier("Cycle 2 : y recoit 6 000", v2.get(0).getBeneficiaireId() == y.getId() && Math.abs(v2.get(0).getMontantTotal() - 6000) < 0.005);
 
         // cycle 3 : beneficiaire z ; z n'avait pas cotise pour x au cycle 1 => x est dispense ; y doit cotiser
         cycles.demarrerCycle(x.getId(), t.getId());
@@ -476,7 +567,7 @@ public class TestServices {
         cotisations.payerCotisation(y.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000011");
         cotisations.payerCotisation(z.getId(), t.getId(), 2000, ModePaiement.ORANGE_MONEY, "770000012");
         List<Distribution> v3 = cycles.cloturerCycle(x.getId(), t.getId());
-        verifier("Cycle 3 : z recoit 4 000 (x dispense)", v3.get(0).getBeneficiaireId() == z.getId() && Math.abs(v3.get(0).getMontantTotal() - 4000) < 0.005);
+        verifier("Cycle 3 : z recoit 4 000 - 500 de penalite due = 3 500 (x dispense)", v3.get(0).getBeneficiaireId() == z.getId() && Math.abs(v3.get(0).getMontantTotal() - 3500) < 0.005);
         int dettesX = 0;
         for (Transaction tx : txDao.findByTontine(t.getId())) {
             if (tx.getUserId() == x.getId() && tx.getType() == TypeTransaction.PENALITE) {
@@ -523,11 +614,11 @@ public class TestServices {
         cotisations.payerCotisation(b1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000030");
         cotisations.payerCotisation(payeur.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000031");
         List<Distribution> v1 = cycles.cloturerCycle(a.getId(), t.getId());
-        verifier("Cycle 1 : le gagnant recoit 4 000 (un membre n'a pas cotise)", v1.get(0).getBeneficiaireId() == b1.getId() && Math.abs(v1.get(0).getMontantTotal() - 4000) < 0.005);
+        verifier("Cycle 1 : le gagnant recoit 4 000 + 500 de penalite du membre defaillant", v1.get(0).getBeneficiaireId() == b1.getId() && Math.abs(v1.get(0).getMontantTotal() - 4500) < 0.005);
 
         // cycle 2 : tirage parmi les deux autres
         cycles.demarrerCycle(a.getId(), t.getId());
-        verifier("Cycle 2 : le membre defaillant doit payer 500 de penalite de non-cotisation", cotisations.etatTour(defaillant.getId(), t.getId()).arrieres == 500);
+        verifier("Cycle 2 : la penalite de non-cotisation (500) est deja retiree du solde du defaillant", new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), defaillant.getId()).getSolde() == -500);
         Tirage t2 = cycles.lancerTirage(a.getId(), t.getId());
         boolean b2EstDefaillant = t2.getBeneficiaireId() == defaillant.getId();
         // b1 (deja gagnant) ne doit cotiser pour le nouveau gagnant que si celui-ci avait cotise pour lui au cycle 1
@@ -540,7 +631,7 @@ public class TestServices {
             cotisations.payerCotisation(b1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000030");
         }
         cotisations.payerCotisation(defaillant.getId(), t.getId(), 2000 , ModePaiement.WAVE, "770000032");
-        verifier("Cycle 2 : la penalite impayee a ete reglee avec la cotisation", cotisations.etatTour(defaillant.getId(), t.getId()).arrieres == 0);
+        verifier("Cycle 2 : aucune penalite supplementaire a payer", cotisations.etatTour(defaillant.getId(), t.getId()).arrieres == 0);
     }
 
     private static void testTirageAuSort() throws Exception {
@@ -603,7 +694,23 @@ public class TestServices {
     }
 
     private static DemandeCreation creation(int userId, String nom, TypeTontine type, double montant, Frequence f, int nb) {
-        return demandes.soumettreDemandeCreation(userId, nom, type, montant, f, nb, pieceSure("creation"));
+        return demandes.soumettreDemandeCreation(userId, nom, type, params(type, montant, f, nb), pieceSure("creation"));
+    }
+
+    /** Parametres complets d'une demande de creation (tout est defini avant l'envoi a l'administrateur). */
+    private static ParametresTontine params(TypeTontine type, double montant, Frequence f, int nb) {
+        ParametresTontine p = new ParametresTontine();
+        boolean fc = type == TypeTontine.FONDS_COMMUN;
+        p.setMontantCotisation(fc ? Math.max(montant, 1000) : montant);
+        p.setMontantMaxCotisation(fc ? p.getMontantCotisation() * 5 : null);
+        p.setFrequence(f);
+        p.setDureeEnCycle(nb);
+        p.setNbMembreMax(nb);
+        if (fc) {
+            p.setTauxInteret(10.0);
+            p.setDureeMaxPret(30);
+        }
+        return p;
     }
 
     private static String nomUnique(String base) {

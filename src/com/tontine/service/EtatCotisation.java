@@ -20,6 +20,8 @@ public class EtatCotisation {
     public LocalDate disponibleLe;
     /** Date limite de la prochaine cotisation (apres elle : penalite). */
     public LocalDate echeance;
+    /** Date ET heure limites de la prochaine cotisation (jour et heure definis par le gerant). */
+    public java.time.LocalDateTime limite;
     /** Vrai si la prochaine cotisation est deja en retard. */
     public boolean enRetard;
     /** Penalite qui s'ajoutera au paiement (0 si a l'heure). */

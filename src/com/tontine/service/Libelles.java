@@ -115,4 +115,76 @@ public final class Libelles {
             return "Refus\u00e9e";
         }
     }
+
+    private static final String[] JOURS = { "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche" };
+    private static final String[] MOIS = { "janvier", "f\u00e9vrier", "mars", "avril", "mai", "juin", "juillet",
+            "ao\u00fbt", "septembre", "octobre", "novembre", "d\u00e9cembre" };
+
+    public static String jourSemaine(int j) {
+        return JOURS[Math.max(1, Math.min(7, j)) - 1];
+    }
+
+    public static String mois(int m) {
+        return MOIS[Math.max(1, Math.min(12, m)) - 1];
+    }
+
+    /** Date et heure de cotisation en clair, ex. "chaque lundi avant 18:00". */
+    public static String horaire(com.tontine.model.Frequence f, Integer jour, Integer mois, java.time.LocalTime heure) {
+        if (f == null) {
+            return "";
+        }
+        String h = Format.heure(heure == null ? java.time.LocalTime.of(23, 59) : heure);
+        switch (f) {
+        case JOURNALIERE:
+            return "chaque jour avant " + h;
+        case HEBDOMADAIRE:
+            return jour == null ? "en fin de semaine, avant " + h : "chaque " + jourSemaine(jour) + " avant " + h;
+        case MENSUELLE:
+            return jour == null ? "en fin de mois, avant " + h
+                    : "le " + (jour == 1 ? "1er" : String.valueOf(jour)) + " de chaque mois avant " + h;
+        default:
+            return jour == null || mois == null ? "en fin d'ann\u00e9e, avant " + h
+                    : "le " + (jour == 1 ? "1er" : String.valueOf(jour)) + " " + mois(mois) + " de chaque ann\u00e9e avant " + h;
+        }
+    }
+
+    public static String horaire(com.tontine.model.Tontine t) {
+        return horaire(t.getFrequence(), t.getJourCotisation(), t.getMoisCotisation(), t.getHeureCotisation());
+    }
+
+    public static String horaire(com.tontine.model.DemandeCreation d) {
+        return horaire(d.getFrequence(), d.getJourCotisation(), d.getMoisCotisation(), d.getHeureCotisation());
+    }
+
+    /** Resume de toutes les regles d'une demande de creation, pour l'administrateur et le demandeur. */
+    public static String reglesDemande(com.tontine.model.DemandeCreation d) {
+        boolean fc = d.getTypeSouhaite() == com.tontine.model.TypeTontine.FONDS_COMMUN;
+        StringBuilder sb = new StringBuilder();
+        if (fc) {
+            sb.append("Cotisation entre ").append(Format.montant(d.getMontant())).append(" et ")
+                    .append(Format.montant(d.getMontantMax() == null ? d.getMontant() : d.getMontantMax()));
+        } else {
+            sb.append("Cotisation de ").append(Format.montant(d.getMontant()));
+        }
+        sb.append(" (").append(frequence(d.getFrequence()).toLowerCase()).append(", ")
+                .append(horaire(d)).append(") - ").append(d.getNbMembre()).append(" membres max.");
+        if (fc) {
+            sb.append(" Cycle de ").append(d.getDureeEnCycle()).append(" p\u00e9riode(s).");
+        }
+        sb.append(" P\u00e9nalit\u00e9 : ").append(Format.montant(d.getPenaliteRetard())).append(".");
+        if (fc && d.getTauxInteret() != null) {
+            sb.append(" Pr\u00eats \u00e0 ").append(d.getTauxInteret()).append(" % sur ").append(d.getDureeMaxPret())
+                    .append(" jour(s) maximum.");
+        }
+        return sb.toString();
+    }
+
+    /** Fonds commun : "cycle" ; tour de role et tirage au sort : "tour" (on demarre et on cloture un tour). */
+    public static String cycle(com.tontine.model.Tontine t) {
+        return t != null && !t.isFondsCommun() ? "tour" : "cycle";
+    }
+
+    public static String cycleMaj(com.tontine.model.Tontine t) {
+        return t != null && !t.isFondsCommun() ? "Tour" : "Cycle";
+    }
 }

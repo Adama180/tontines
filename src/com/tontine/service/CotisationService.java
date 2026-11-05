@@ -1,6 +1,10 @@
 package com.tontine.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +57,6 @@ public class CotisationService {
         Cycle c = Controles.cycleEnCours(t);
         Controles.exiger(mode != null, "Choisissez un mode de paiement.");
         controlerMontant(t, c, userId, montant);
-        double penalitePrevue = penalitesPrevues(t, c, userId);
 
         Transaction tx = nouvelleTransaction(t, c, userId, montant, mode);
         if (mode == ModePaiement.ESPECE) {
@@ -64,7 +67,7 @@ public class CotisationService {
                     + Format.montant(montant) + " attend votre confirmation (tontine " + t.getNom() + ").",
                     "COTISATION");
         } else {
-            tx.setReference(PasserelleSimulee.initierPaiement(mode, Controles.arrondir(montant + penalitePrevue), numeroMobile));
+            tx.setReference(PasserelleSimulee.initierPaiement(mode, Controles.arrondir(montant), numeroMobile));
             tx.setStatut(StatutTransaction.CONFIRMEE);
             transactionDao.insert(tx);
             appliquer(tx, t, c, a);
@@ -120,7 +123,7 @@ public class CotisationService {
         }
 
         Cycle c = tx.getCycleId() == null ? null : cycleDao.findById(tx.getCycleId());
-        Controles.exiger(c != null && c.getStatut() == StatutCycle.EN_COURS, "Le cycle de ce paiement est d\u00e9j\u00e0 cl\u00f4tur\u00e9.");
+        Controles.exiger(c != null && c.getStatut() == StatutCycle.EN_COURS, "Le " + Libelles.cycle(t) + " de ce paiement est d\u00e9j\u00e0 cl\u00f4tur\u00e9.");
         transactionDao.changerStatut(tx.getId(), StatutTransaction.CONFIRMEE);
         tx.setStatut(StatutTransaction.CONFIRMEE);
         if (tx.getType() == TypeTransaction.COTISATION) {
@@ -198,14 +201,14 @@ public class CotisationService {
         }
         if (t.isFondsCommun()) {
             EtatCotisation e = etatCotisation(userId, t.getId());
-            Controles.exiger(!e.termine(), "Vous avez d\u00e9j\u00e0 fait toutes vos cotisations de ce cycle.");
+            Controles.exiger(!e.termine(), "Vous avez d\u00e9j\u00e0 fait toutes vos cotisations de ce " + Libelles.cycle(t) + ".");
             Controles.exiger(e.peutCotiser, "Vous avez d\u00e9j\u00e0 cotis\u00e9 pour cette p\u00e9riode. "
                     + "Prochaine cotisation possible \u00e0 partir du " + Format.date(e.disponibleLe) + ".");
         } else {
             Controles.exiger(cotisationDuCycle(c, userId) <= 0,
-                    "Vous avez d\u00e9j\u00e0 cotis\u00e9 (ou un paiement est en attente) pour ce cycle.");
+                    "Vous avez d\u00e9j\u00e0 cotis\u00e9 (ou un paiement est en attente) pour ce " + Libelles.cycle(t) + ".");
             Controles.exiger(beneficiaireDuCycle(t, c) != null,
-                    "Le tirage au sort de ce cycle doit avoir lieu avant les cotisations : vous cotisez pour le b\u00e9n\u00e9ficiaire tir\u00e9. "
+                    "Le tirage au sort de ce " + Libelles.cycle(t) + " doit avoir lieu avant les cotisations : vous cotisez pour le b\u00e9n\u00e9ficiaire tir\u00e9. "
                             + "Attendez que le g\u00e9rant lance le tirage.");
             String motif = motifExemption(t, c, userId);
             Controles.exiger(motif == null, motif);
@@ -235,26 +238,43 @@ public class CotisationService {
         return tx;
     }
 
+    /**
+     * Retire une penalite du solde du membre (aucun paiement en plus). Fonds commun : jamais plus que le solde
+     * positif du membre (le fonds reste equilibre). Tour de role / tirage : le solde peut devenir negatif (ce que
+     * le membre doit) ; la dette est retiree de ce qu'il recevra a son tour. Retourne le montant reellement preleve.
+     */
+    double prelever(Tontine t, Cycle c, Adhesion a, double montant, String reference, ModePaiement mode) {
+        double soldeActuel = adhesionDao.findById(a.getId()).getSolde();
+        double retrait = Controles.arrondir(t.isFondsCommun() ? Math.min(montant, Math.max(0, soldeActuel)) : montant);
+        if (retrait <= 0) {
+            return 0;
+        }
+        Transaction p = new Transaction();
+        p.setTontineId(t.getId());
+        p.setUserId(a.getUserId());
+        p.setCycleId(c == null ? null : c.getId());
+        p.setType(TypeTransaction.PENALITE);
+        p.setMontant(retrait);
+        p.setModePaiement(mode);
+        p.setStatut(StatutTransaction.CONFIRMEE);
+        p.setReference(reference);
+        transactionDao.insert(p);
+        adhesionDao.ajouterAuSolde(a.getId(), -retrait);
+        return retrait;
+    }
+
     /** Une cotisation confirmee : met a jour le solde et applique la penalite si elle est en retard. */
     private void appliquer(Transaction tx, Tontine t, Cycle c, Adhesion a) {
         adhesionDao.enregistrerCotisation(a.getId(), tx.getMontant());
-        LocalDate limite = t.isFondsCommun() ? echeanceMembre(t, c, a, tx) : echeance(c, t.getFrequence());
-        if (t.getPenaliteRetard() > 0 && tx.getDate().toLocalDate().isAfter(limite)) {
-            Transaction p = new Transaction();
-            p.setTontineId(t.getId());
-            p.setUserId(tx.getUserId());
-            p.setCycleId(c.getId());
-            p.setType(TypeTransaction.PENALITE);
-            p.setMontant(t.getPenaliteRetard());
-            p.setModePaiement(tx.getModePaiement());
-            p.setStatut(StatutTransaction.CONFIRMEE);
-            p.setReference("PEN-" + tx.getId());
-            transactionDao.insert(p);
-            NotificationService.notifier(tx.getUserId(), "P\u00e9nalit\u00e9 de retard de "
-                    + Format.montant(t.getPenaliteRetard()) + " appliqu\u00e9e (tontine " + t.getNom() + ").", "PENALITE");
-        }
-        if (!t.isFondsCommun()) {
-            regleArrieres(t, c, tx.getUserId()); // penalites d'anciens cycles payees avec cette cotisation
+        LocalDateTime limite = t.isFondsCommun() ? echeanceMembre(t, c, a, tx)
+                : limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
+        if (t.getPenaliteRetard() > 0 && tx.getDate().isAfter(limite)) {
+            // la penalite n'est pas payee en plus : elle est retiree du solde du membre
+            double prelevee = prelever(t, c, a, t.getPenaliteRetard(), "PEN-" + tx.getId(), tx.getModePaiement());
+            if (prelevee > 0) {
+                NotificationService.notifier(tx.getUserId(), "P\u00e9nalit\u00e9 de retard de "
+                        + Format.montant(prelevee) + " d\u00e9duite de votre solde (tontine " + t.getNom() + ").", "PENALITE");
+            }
         }
     }
 
@@ -276,7 +296,7 @@ public class CotisationService {
         for (Distribution d : distributionsDuTour(t)) {
             if (d.getBeneficiaireId() == userId && !aCotiseConfirme(d.getCycleId(), beneficiaire.getId())) {
                 return beneficiaire.getNomComplet() + " n'a pas cotis\u00e9 pour vous lors de votre tour : "
-                        + "vous n'avez pas \u00e0 cotiser pour lui/elle ce cycle.";
+                        + "vous n'avez pas \u00e0 cotiser pour lui/elle ce " + Libelles.cycle(t) + ".";
             }
         }
         return null;
@@ -313,37 +333,14 @@ public class CotisationService {
         return false;
     }
 
-    /** Penalites de non-cotisation encore dues par le membre (enregistrees a la cloture d'un cycle precedent). */
-    private List<Transaction> arrieresDus(int tontineId, int userId) {
-        List<Transaction> liste = new ArrayList<>();
-        for (Transaction tx : transactionDao.findByTontineEtUser(tontineId, userId)) {
-            if (tx.getType() == TypeTransaction.PENALITE && tx.getStatut() == StatutTransaction.EN_ATTENTE
-                    && tx.getModePaiement() == null) {
-                liste.add(tx);
-            }
-        }
-        return liste;
-    }
-
-    private void regleArrieres(Tontine t, Cycle c, int userId) {
-        for (Transaction dette : arrieresDus(t.getId(), userId)) {
-            dette.setStatut(StatutTransaction.CONFIRMEE);
-            dette.setCycleId(c.getId());
-            transactionDao.update(dette);
-        }
-    }
-
-    /** Total a ajouter a la cotisation : penalite de retard eventuelle + penalites impayees (tour de role). */
+    /** Penalite qui sera retiree du solde du membre s'il cotise maintenant (retard). */
     private double penalitesPrevues(Tontine t, Cycle c, int userId) {
         if (t.isFondsCommun()) {
             return etatCotisation(userId, t.getId()).penalite;
         }
         double total = 0;
-        if (t.getPenaliteRetard() > 0 && LocalDate.now().isAfter(echeance(c, t.getFrequence()))) {
+        if (t.getPenaliteRetard() > 0 && LocalDateTime.now().isAfter(limite(t, c.getDateDebut(), echeance(c, t.getFrequence())))) {
             total += t.getPenaliteRetard();
-        }
-        for (Transaction d : arrieresDus(t.getId(), userId)) {
-            total += d.getMontant();
         }
         return Controles.arrondir(total);
     }
@@ -358,11 +355,9 @@ public class CotisationService {
         e.beneficiaire = beneficiaire == null ? null : beneficiaire.getNomComplet();
         e.tirageAttendu = beneficiaire == null;
         e.exemption = motifExemption(t, c, userId);
-        for (Transaction d : arrieresDus(tontineId, userId)) {
-            e.arrieres += d.getMontant();
-        }
-        e.echeance = echeance(c, t.getFrequence());
-        e.enRetard = t.getPenaliteRetard() > 0 && LocalDate.now().isAfter(e.echeance);
+        e.limite = limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
+        e.echeance = e.limite.toLocalDate();
+        e.enRetard = t.getPenaliteRetard() > 0 && LocalDateTime.now().isAfter(e.limite);
         e.penalite = penalitesPrevues(t, c, userId);
         e.faites = cotisationDuCycle(c, userId) > 0 ? 1 : 0;
         e.attendues = e.exemption == null ? 1 : 0;
@@ -371,8 +366,8 @@ public class CotisationService {
     }
 
     /**
-     * Cloture d'un tour de role : chaque membre qui devait cotiser et ne l'a pas fait recoit une penalite de
-     * non-cotisation (montant fixe par le gerant), a payer avec sa prochaine cotisation. Les dispenses ne paient rien.
+     * Cloture d'un tour de role : chaque membre qui devait cotiser et ne l'a pas fait subit une penalite de
+     * non-cotisation (montant fixe par le gerant), retiree de son solde. Les dispenses ne paient rien.
      */
     void enregistrerImpayes(Tontine t, Cycle c) {
         if (t.isFondsCommun() || t.getPenaliteRetard() <= 0) {
@@ -381,18 +376,10 @@ public class CotisationService {
         for (Adhesion a : adhesionDao.findByTontine(t.getId())) {
             if (a.getStatut() == StatutAdhesion.ACTIF && cotisationDuCycle(c, a.getUserId()) <= 0
                     && motifExemption(t, c, a.getUserId()) == null) {
-                Transaction dette = new Transaction();
-                dette.setTontineId(t.getId());
-                dette.setUserId(a.getUserId());
-                dette.setCycleId(c.getId());
-                dette.setType(TypeTransaction.PENALITE);
-                dette.setMontant(t.getPenaliteRetard());
-                dette.setStatut(StatutTransaction.EN_ATTENTE);
-                dette.setReference("IMPAYE-" + c.getNumero());
-                transactionDao.insert(dette);
-                NotificationService.notifier(a.getUserId(), "Vous n'avez pas cotis\u00e9 au cycle " + c.getNumero()
-                        + " : p\u00e9nalit\u00e9 de " + Format.montant(t.getPenaliteRetard())
-                        + ", \u00e0 payer avec votre prochaine cotisation (tontine " + t.getNom() + ").", "PENALITE");
+                double prelevee = prelever(t, c, a, t.getPenaliteRetard(), "IMPAYE-" + c.getNumero(), null);
+                NotificationService.notifier(a.getUserId(), "Vous n'avez pas cotis\u00e9 au " + Libelles.cycle(t) + " " + c.getNumero()
+                        + " : p\u00e9nalit\u00e9 de " + Format.montant(prelevee)
+                        + " d\u00e9duite de votre solde (tontine " + t.getNom() + ").", "PENALITE");
             }
         }
     }
@@ -448,7 +435,7 @@ public class CotisationService {
     }
 
     /** Date limite de la cotisation 'tx' : fin de la periode correspondant a son rang. */
-    private LocalDate echeanceMembre(Tontine t, Cycle c, Adhesion a, Transaction tx) {
+    private LocalDateTime echeanceMembre(Tontine t, Cycle c, Adhesion a, Transaction tx) {
         int rang = 0;
         for (Transaction autre : transactionDao.findByCycle(c.getId())) {
             if (autre.getUserId() == tx.getUserId() && autre.getType() == TypeTransaction.COTISATION
@@ -456,7 +443,46 @@ public class CotisationService {
                 rang++;
             }
         }
-        return debutPeriode(c, t.getFrequence(), decalage(t, c, a) + Math.max(1, rang));
+        int p = decalage(t, c, a) + Math.max(1, rang);
+        return limite(t, debutPeriode(c, t.getFrequence(), p - 1), debutPeriode(c, t.getFrequence(), p));
+    }
+
+    /**
+     * Date et heure limites d'une cotisation pour la periode [debut, fin] : le jour choisi par le gerant (jour de la
+     * semaine, du mois ou de l'annee selon la frequence) a l'heure choisie. Sans jour defini, c'est la fin de periode.
+     */
+    public static LocalDateTime limite(Tontine t, LocalDate debut, LocalDate fin) {
+        LocalDate d = fin;
+        Integer j = t.getJourCotisation();
+        if (j != null && t.getFrequence() != Frequence.JOURNALIERE) {
+            switch (t.getFrequence()) {
+            case HEBDOMADAIRE:
+                d = fin.with(TemporalAdjusters.previousOrSame(DayOfWeek.of(j)));
+                break;
+            case MENSUELLE:
+                d = jourPresent(fin.getYear(), fin.getMonthValue(), j);
+                if (d.isAfter(fin)) {
+                    LocalDate precedent = fin.withDayOfMonth(1).minusMonths(1);
+                    d = jourPresent(precedent.getYear(), precedent.getMonthValue(), j);
+                }
+                break;
+            default:
+                int mois = t.getMoisCotisation() == null ? fin.getMonthValue() : t.getMoisCotisation();
+                d = jourPresent(fin.getYear(), mois, j);
+                if (d.isAfter(fin)) {
+                    d = jourPresent(fin.getYear() - 1, mois, j);
+                }
+            }
+            if (d.isBefore(debut)) {
+                d = fin;
+            }
+        }
+        return LocalDateTime.of(d, t.getHeureCotisation());
+    }
+
+    /** Le jour demande du mois, ramene au dernier jour du mois s'il n'existe pas (ex. 31 en juin). */
+    private static LocalDate jourPresent(int annee, int mois, int jour) {
+        return LocalDate.of(annee, mois, Math.min(jour, YearMonth.of(annee, mois).lengthOfMonth()));
     }
 
     /**
@@ -480,10 +506,11 @@ public class CotisationService {
             return e;
         }
         LocalDate debut = debutPeriode(c, f, decalage + e.rang - 1);
-        e.echeance = debutPeriode(c, f, decalage + e.rang);
+        e.limite = limite(t, debut, debutPeriode(c, f, decalage + e.rang));
+        e.echeance = e.limite.toLocalDate();
         e.peutCotiser = !aujourdhui.isBefore(debut);
         e.disponibleLe = debut;
-        e.enRetard = aujourdhui.isAfter(e.echeance);
+        e.enRetard = LocalDateTime.now().isAfter(e.limite);
         e.penalite = e.enRetard ? t.getPenaliteRetard() : 0;
         return e;
     }

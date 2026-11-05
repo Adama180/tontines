@@ -26,6 +26,7 @@ import com.tontine.model.Utilisateur;
  */
 public class PretService {
 
+    private final com.tontine.dao.AdhesionDao adhesionDao = new com.tontine.dao.AdhesionDao();
     private final PretDao pretDao = new PretDao();
     private final TontineDao tontineDao = new TontineDao();
     private final CycleDao cycleDao = new CycleDao();
@@ -34,20 +35,20 @@ public class PretService {
     public Pret demanderPret(int userId, int tontineId, double montant, int nbJours, String motif) {
         Controles.utilisateur(userId);
         Tontine t = Controles.tontine(tontineId);
-        Controles.exiger(t.isFondsCommun(), "Les prets ne sont proposes que dans les tontines de type fonds commun.");
+        Controles.exiger(t.isFondsCommun(), "Les pr\u00eats ne sont propos\u00e9s que dans les tontines de type fonds commun.");
         Controles.adhesionActive(tontineId, userId);
         Controles.cycleEnCours(t);
         Controles.exiger(t.getTauxInteret() != null && t.getDureeMaxPret() != null,
-                "Le gerant n'a pas encore defini les conditions de pret (taux et duree maximale).");
-        Controles.exiger(montant > 0, "Le montant du pret doit etre positif.");
+                "Le g\u00e9rant n'a pas encore d\u00e9fini les conditions de pr\u00eat (taux et dur\u00e9e maximale).");
+        Controles.exiger(montant > 0, "Le montant du pr\u00eat doit \u00eatre positif.");
         Controles.exiger(nbJours >= 1 && nbJours <= t.getDureeMaxPret(),
-                "La duree doit etre comprise entre 1 et " + t.getDureeMaxPret() + " jours.");
+                "La dur\u00e9e doit \u00eatre comprise entre 1 et " + t.getDureeMaxPret() + " jours.");
         Controles.exiger(montant <= fondsDisponible(tontineId) + 0.005,
                 "Fonds insuffisants : " + Format.montant(fondsDisponible(tontineId)) + " disponibles.");
         for (Pret p : pretDao.findByUser(userId)) {
             Controles.exiger(p.getTontineId() != tontineId
                     || (p.getStatut() != StatutPret.EN_ATTENTE && p.getStatut() != StatutPret.ACCORDE),
-                    "Vous avez deja un pret en attente ou non rembourse dans cette tontine.");
+                    "Vous avez d\u00e9j\u00e0 un pr\u00eat en attente ou non rembours\u00e9 dans cette tontine.");
         }
 
         Pret p = new Pret();
@@ -59,7 +60,7 @@ public class PretService {
         pretDao.insert(p);
 
         Utilisateur emprunteur = Controles.utilisateur(userId);
-        String msg = "Nouvelle demande de pret de " + Format.montant(montant) + " par " + emprunteur.getNomComplet()
+        String msg = "Nouvelle demande de pr\u00eat de " + Format.montant(montant) + " par " + emprunteur.getNomComplet()
                 + " (tontine " + t.getNom() + ").";
         if (t.getGerantId() == userId) {
             NotificationService.notifierAdmins(msg, "PRET");
@@ -74,24 +75,24 @@ public class PretService {
      */
     public Pret validerPret(int validateurId, int pretId, boolean accepter) {
         Pret p = pretDao.findById(pretId);
-        Controles.exiger(p != null, "Pret introuvable.");
-        Controles.exiger(p.getStatut() == StatutPret.EN_ATTENTE, "Ce pret a deja ete traite.");
+        Controles.exiger(p != null, "Pr\u00eat introuvable.");
+        Controles.exiger(p.getStatut() == StatutPret.EN_ATTENTE, "Ce pr\u00eat a d\u00e9j\u00e0 \u00e9t\u00e9 trait\u00e9.");
         Tontine t = Controles.tontine(p.getTontineId());
         Utilisateur validateur = Controles.utilisateur(validateurId);
 
         if (p.getUserId() == t.getGerantId()) {
             Controles.exiger(validateur.isAdmin(),
-                    "Ce pret est demande par le gerant : seul l'administrateur peut le valider.");
+                    "Ce pr\u00eat est demand\u00e9 par le g\u00e9rant : seul l'administrateur peut le valider.");
         } else {
-            Controles.exiger(t.getGerantId() == validateurId, "Seul le gerant de la tontine peut valider ce pret.");
+            Controles.exiger(t.getGerantId() == validateurId, "Seul le g\u00e9rant de la tontine peut valider ce pr\u00eat.");
         }
 
         if (!accepter) {
             pretDao.traiter(p.getId(), StatutPret.REFUSE, validateurId);
             p.setStatut(StatutPret.REFUSE);
-            NotificationService.notifier(p.getUserId(), "Votre demande de pret de " + Format.montant(p.getMontant())
-                    + " a ete refusee.", "PRET");
-            Controles.audit(validateurId, "PRET_REFUSE", "Pret " + p.getId() + " - tontine " + t.getNom());
+            NotificationService.notifier(p.getUserId(), "Votre demande de pr\u00eat de " + Format.montant(p.getMontant())
+                    + " a \u00e9t\u00e9 refus\u00e9e.", "PRET");
+            Controles.audit(validateurId, "PRET_REFUSE", "Pr\u00eat " + p.getId() + " - tontine " + t.getNom());
             return p;
         }
 
@@ -111,13 +112,13 @@ public class PretService {
         p.setStatut(StatutPret.ACCORDE);
         p.setValideurId(validateurId);
 
-        NotificationService.notifier(p.getUserId(), "Votre pret de " + Format.montant(p.getMontant())
-                + " est accorde. A rembourser : " + Format.montant(totalDu(p, t)) + " en " + p.getNbJours()
+        NotificationService.notifier(p.getUserId(), "Votre pr\u00eat de " + Format.montant(p.getMontant())
+                + " est accord\u00e9. \u00c0 rembourser : " + Format.montant(totalDu(p, t)) + " en " + p.getNbJours()
                 + " jours maximum.", "PRET");
         // transparence : tous les membres voient les prets accordes, y compris ceux du gerant
-        NotificationService.notifierMembres(t.getId(), "Un pret de " + Format.montant(p.getMontant())
-                + " a ete accorde dans la tontine " + t.getNom() + ".", "PRET", p.getUserId());
-        Controles.audit(validateurId, "PRET_ACCORDE", "Pret " + p.getId() + " - tontine " + t.getNom()
+        NotificationService.notifierMembres(t.getId(), "Un pr\u00eat de " + Format.montant(p.getMontant())
+                + " a \u00e9t\u00e9 accord\u00e9 dans la tontine " + t.getNom() + ".", "PRET", p.getUserId());
+        Controles.audit(validateurId, "PRET_ACCORDE", "Pr\u00eat " + p.getId() + " - tontine " + t.getNom()
                 + " - " + Format.montant(p.getMontant()));
         return p;
     }
@@ -125,15 +126,15 @@ public class PretService {
     /** Rembourse tout ou partie d'un pret (jamais plus que le reste du). */
     public Transaction rembourser(int userId, int pretId, double montant, ModePaiement mode, String numeroMobile) {
         Pret p = pretDao.findById(pretId);
-        Controles.exiger(p != null && p.getUserId() == userId, "Pret introuvable.");
-        Controles.exiger(p.getStatut() == StatutPret.ACCORDE, "Ce pret n'est pas a rembourser.");
+        Controles.exiger(p != null && p.getUserId() == userId, "Pr\u00eat introuvable.");
+        Controles.exiger(p.getStatut() == StatutPret.ACCORDE, "Ce pr\u00eat n'est pas \u00e0 rembourser.");
         Tontine t = Controles.tontine(p.getTontineId());
         Cycle c = Controles.cycleEnCours(t);
         Controles.exiger(mode != null, "Choisissez un mode de paiement.");
-        Controles.exiger(montant > 0, "Le montant doit etre positif.");
+        Controles.exiger(montant > 0, "Le montant doit \u00eatre positif.");
         double reste = resteAPayer(p, t);
         Controles.exiger(montant <= reste + 0.005,
-                "Le remboursement ne peut pas depasser le reste du : " + Format.montant(reste) + ".");
+                "Le remboursement ne peut pas d\u00e9passer le reste d\u00fb : " + Format.montant(reste) + ".");
 
         Transaction tx = new Transaction();
         tx.setTontineId(t.getId());
@@ -146,7 +147,7 @@ public class PretService {
             tx.setStatut(StatutTransaction.EN_ATTENTE);
             tx.setReference(refPret(p) + "|ESP");
             transactionDao.insert(tx);
-            NotificationService.notifier(t.getGerantId(), "Un remboursement de pret en especes de "
+            NotificationService.notifier(t.getGerantId(), "Un remboursement de pr\u00eat en esp\u00e8ces de "
                     + Format.montant(montant) + " attend votre confirmation (tontine " + t.getNom() + ").", "PRET");
         } else {
             tx.setStatut(StatutTransaction.CONFIRMEE);
@@ -160,43 +161,36 @@ public class PretService {
     /** Remboursement confirme : met a jour le pret, le solde du et la penalite eventuelle. */
     void appliquerRemboursement(Transaction tx) {
         Pret p = pretDao.findById(idPret(tx.getReference()));
-        Controles.exiger(p != null, "Pret introuvable pour ce remboursement.");
+        Controles.exiger(p != null, "Pr\u00eat introuvable pour ce remboursement.");
         Tontine t = Controles.tontine(p.getTontineId());
         pretDao.ajouterRemboursement(p.getId(), tx.getMontant());
         p = pretDao.findById(p.getId());
         if (resteAPayer(p, t) <= 0.004) {
             pretDao.changerStatut(p.getId(), StatutPret.REMBOURSE);
-            NotificationService.notifier(p.getUserId(), "Votre pret de " + Format.montant(p.getMontant())
-                    + " est entierement rembourse.", "PRET");
+            NotificationService.notifier(p.getUserId(), "Votre pr\u00eat de " + Format.montant(p.getMontant())
+                    + " est enti\u00e8rement rembours\u00e9.", "PRET");
         }
         // penalite de retard (une seule fois par pret)
         if (t.getPenaliteRetard() > 0 && tx.getDate().isAfter(dateDecaissement(p).plusDays(p.getNbJours()))
                 && !penaliteDejaAppliquee(p)) {
-            Transaction pen = new Transaction();
-            pen.setTontineId(t.getId());
-            pen.setUserId(p.getUserId());
-            pen.setCycleId(tx.getCycleId());
-            pen.setType(TypeTransaction.PENALITE);
-            pen.setMontant(t.getPenaliteRetard());
-            pen.setModePaiement(tx.getModePaiement());
-            pen.setStatut(StatutTransaction.CONFIRMEE);
-            pen.setReference(refPret(p));
-            transactionDao.insert(pen);
-            NotificationService.notifier(p.getUserId(), "Penalite de retard de "
-                    + Format.montant(t.getPenaliteRetard()) + " appliquee a votre pret.", "PENALITE");
+            // la penalite est retiree du solde de l'emprunteur (aucun paiement en plus)
+            Adhesion emprunteur = adhesionDao.findByTontineEtUser(t.getId(), p.getUserId());
+            double prelevee = emprunteur == null ? 0 : new CotisationService().prelever(t, cycleDao.findEnCours(t.getId()), emprunteur,
+                    t.getPenaliteRetard(), refPret(p), tx.getModePaiement());
+            NotificationService.notifier(p.getUserId(), "P\u00e9nalit\u00e9 de retard de "
+                    + Format.montant(prelevee) + " d\u00e9duite de votre solde (pr\u00eat en retard).", "PENALITE");
         }
     }
 
     // ---------------------------------------------------------------- consultation et calculs
 
     /**
-     * Argent reellement disponible dans le fonds : tout ce qui est entre (cotisations, remboursements,
-     * penalites) moins ce qui est sorti (prets, distributions). Seuls les mouvements confirmes comptent.
+     * Argent reellement disponible dans le fonds : tout ce qui est entre (cotisations, remboursements ;
+     * les penalites sont retirees du solde des membres, donc deja comprises dans leurs cotisations) moins ce qui est sorti (prets, distributions). Seuls les mouvements confirmes comptent.
      */
     public double fondsDisponible(int tontineId) {
         double entrees = transactionDao.totalParType(tontineId, TypeTransaction.COTISATION)
-                + transactionDao.totalParType(tontineId, TypeTransaction.REMBOURSEMENT)
-                + transactionDao.totalParType(tontineId, TypeTransaction.PENALITE);
+                + transactionDao.totalParType(tontineId, TypeTransaction.REMBOURSEMENT);
         double sorties = transactionDao.totalParType(tontineId, TypeTransaction.PRET)
                 + transactionDao.totalParType(tontineId, TypeTransaction.DISTRIBUTION);
         return Controles.arrondir(entrees - sorties);
@@ -246,7 +240,7 @@ public class PretService {
     }
 
     private static int idPret(String reference) {
-        Controles.exiger(reference != null && reference.startsWith("PRET-"), "Reference de pret invalide.");
+        Controles.exiger(reference != null && reference.startsWith("PRET-"), "R\u00e9f\u00e9rence de pr\u00eat invalide.");
         int barre = reference.indexOf('|');
         String cle = barre > 0 ? reference.substring(5, barre) : reference.substring(5);
         return Integer.parseInt(cle);

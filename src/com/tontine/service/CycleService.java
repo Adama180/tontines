@@ -59,9 +59,9 @@ public class CycleService {
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
         Controles.exiger(t.getStatut() == StatutTontine.ACTIVE, "Cette tontine est cl\u00f4tur\u00e9e.");
-        Controles.exiger(cycleDao.findEnCours(tontineId) == null, "Un cycle est d\u00e9j\u00e0 en cours.");
+        Controles.exiger(cycleDao.findEnCours(tontineId) == null, "Un " + Libelles.cycle(t) + " est d\u00e9j\u00e0 en cours.");
         Controles.exiger(adhesionDao.compterActifs(tontineId) >= 2,
-                "Il faut au moins 2 membres actifs pour d\u00e9marrer un cycle.");
+                "Il faut au moins 2 membres actifs pour d\u00e9marrer un " + Libelles.cycle(t) + ".");
         if (t.isFondsCommun()) {
             Controles.exiger(t.getMontantMaxCotisation() != null && t.getMontantMaxCotisation() >= t.getMontantCotisation()
                     && t.getMontantCotisation() >= CotisationService.MIN_FONDS_COMMUN,
@@ -76,9 +76,9 @@ public class CycleService {
         c.setDateDebut(LocalDate.now());
         cycleDao.insert(c);
 
-        NotificationService.notifierMembres(tontineId, "Le cycle " + c.getNumero() + " de la tontine "
+        NotificationService.notifierMembres(tontineId, "Le " + Libelles.cycle(t) + " " + c.getNumero() + " de la tontine "
                 + t.getNom() + " a d\u00e9marr\u00e9. Pensez \u00e0 cotiser !", "CYCLE", null);
-        Controles.audit(gerantId, "CYCLE_DEMARRE", "Tontine " + t.getNom() + " - cycle " + c.getNumero());
+        Controles.audit(gerantId, "CYCLE_DEMARRE", "Tontine " + t.getNom() + " - " + Libelles.cycle(t) + " " + c.getNumero());
         return c;
     }
 
@@ -93,9 +93,9 @@ public class CycleService {
         }
         List<Distribution> versements = t.isFondsCommun() ? cloturerFondsCommun(t, c) : cloturerTourEnCours(t, c);
         cycleDao.cloturer(c.getId(), LocalDate.now());
-        NotificationService.notifierMembres(tontineId, "Le cycle " + c.getNumero() + " de la tontine "
+        NotificationService.notifierMembres(tontineId, "Le " + Libelles.cycle(t) + " " + c.getNumero() + " de la tontine "
                 + t.getNom() + " est cl\u00f4tur\u00e9.", "CYCLE", null);
-        Controles.audit(gerantId, "CYCLE_CLOTURE", "Tontine " + t.getNom() + " - cycle " + c.getNumero());
+        Controles.audit(gerantId, "CYCLE_CLOTURE", "Tontine " + t.getNom() + " - " + Libelles.cycle(t) + " " + c.getNumero());
         return versements;
     }
 
@@ -159,7 +159,7 @@ public class CycleService {
 
         if (accepter) {
             Controles.exiger(cycleDao.findEnCours(t.getId()) == null,
-                    "Traitez cette demande entre deux cycles (apr\u00e8s la cl\u00f4ture du cycle en cours).");
+                    "Traitez cette demande entre deux " + Libelles.cycle(t) + "s (apr\u00e8s la cl\u00f4ture du " + Libelles.cycle(t) + " en cours).");
             List<Adhesion> ordre = adhesionDao.findByTontineOrdreTour(t.getId());
             int index = t.getTourActuelIndex() % Math.max(1, ordre.size());
             int position = -1;
@@ -195,7 +195,7 @@ public class CycleService {
         Cycle c = Controles.cycleEnCours(t);
         for (Tirage deja : tirageDao.findByTontine(tontineId)) {
             Controles.exiger(deja.getSemaine() != c.getNumero(),
-                    "Le tirage de ce cycle a d\u00e9j\u00e0 eu lieu : son r\u00e9sultat ne peut pas \u00eatre refait.");
+                    "Le tirage de ce " + Libelles.cycle(t) + " a d\u00e9j\u00e0 eu lieu : son r\u00e9sultat ne peut pas \u00eatre refait.");
         }
 
         List<Adhesion> actifs = actifs(tontineId);
@@ -219,9 +219,9 @@ public class CycleService {
         tirageDao.insert(tirage);
 
         Utilisateur u = utilisateurDao.findById(gagnant.getUserId());
-        NotificationService.notifierMembres(tontineId, "Tirage au sort du cycle " + c.getNumero() + " : "
+        NotificationService.notifierMembres(tontineId, "Tirage au sort du " + Libelles.cycle(t) + " " + c.getNumero() + " : "
                 + u.getNomComplet() + " recevra la cagnotte (tontine " + t.getNom() + ").", "TIRAGE", null);
-        Controles.audit(gerantId, "TIRAGE_AU_SORT", "Tontine " + t.getNom() + " - cycle " + c.getNumero()
+        Controles.audit(gerantId, "TIRAGE_AU_SORT", "Tontine " + t.getNom() + " - " + Libelles.cycle(t) + " " + c.getNumero()
                 + " - gagnant " + u.getNomComplet());
         return tirage;
     }
@@ -236,11 +236,11 @@ public class CycleService {
 
     private List<Distribution> cloturerFondsCommun(Tontine t, Cycle c) {
         LocalDate fin = CotisationService.finDeCycle(c, t);
-        Controles.exiger(!LocalDate.now().isBefore(fin), "Le cycle se termine le " + Format.date(fin)
+        Controles.exiger(!LocalDate.now().isBefore(fin), "Le " + Libelles.cycle(t) + " se termine le " + Format.date(fin)
                 + " (" + t.getDureeEnCycle() + " p\u00e9riode(s) de cotisation). Vous pourrez le cl\u00f4turer \u00e0 partir de cette date.");
         Controles.exiger(pretDao.findByTontineEtStatut(t.getId(), StatutPret.EN_ATTENTE).isEmpty()
                 && pretDao.findByTontineEtStatut(t.getId(), StatutPret.ACCORDE).isEmpty(),
-                "Des pr\u00eats sont encore en attente ou non rembours\u00e9s : le cycle ne peut pas \u00eatre cl\u00f4tur\u00e9.");
+                "Des pr\u00eats sont encore en attente ou non rembours\u00e9s : le " + Libelles.cycle(t) + " ne peut pas \u00eatre cl\u00f4tur\u00e9.");
 
         double rembourse = transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.REMBOURSEMENT);
         double prete = transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.PRET);
@@ -303,14 +303,16 @@ public class CycleService {
                     trouve = ti.getBeneficiaireId();
                 }
             }
-            Controles.exiger(trouve != null, "Lancez d'abord le tirage au sort de ce cycle.");
+            Controles.exiger(trouve != null, "Lancez d'abord le tirage au sort de ce " + Libelles.cycle(t) + ".");
             beneficiaireId = trouve;
         }
 
+        Controles.exiger(transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.COTISATION) > 0,
+                "Aucune cotisation n'a \u00e9t\u00e9 collect\u00e9e dans ce " + Libelles.cycle(t) + ".");
+        // penalites de non-cotisation : retirees du solde des membres defaillants et versees au beneficiaire
+        new CotisationService().enregistrerImpayes(t, c);
         double pot = Controles.arrondir(transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.COTISATION)
                 + transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.PENALITE));
-        Controles.exiger(pot > 0, "Aucune cotisation n'a \u00e9t\u00e9 collect\u00e9e dans ce cycle.");
-        new CotisationService().enregistrerImpayes(t, c); // tour de role : penalites de non-cotisation (avant l'avancement du tour)
 
         // chacun a "consomme" sa cotisation du cycle : son solde diminue d'autant
         Map<Integer, Double> cotise = new HashMap<>();
@@ -326,8 +328,19 @@ public class CycleService {
             }
         }
 
+        // ce que le beneficiaire doit encore (solde negatif : penalites deja retirees de son solde) est deduit de son versement
+        Adhesion benef = adhesionDao.findByTontineEtUser(t.getId(), beneficiaireId);
+        double dette = benef == null ? 0 : Math.max(0, -adhesionDao.findById(benef.getId()).getSolde());
+        double retenueDette = Controles.arrondir(Math.min(dette, pot));
+        if (retenueDette > 0) {
+            adhesionDao.ajouterAuSolde(benef.getId(), retenueDette);
+            NotificationService.notifier(beneficiaireId, "Vos p\u00e9nalit\u00e9s de " + Format.montant(retenueDette)
+                    + " sont d\u00e9duites de votre versement (tontine " + t.getNom() + ").", "PENALITE");
+        }
         List<Distribution> versements = new ArrayList<>();
-        versements.add(verser(t, c, beneficiaireId, pot));
+        if (pot - retenueDette > 0) {
+            versements.add(verser(t, c, beneficiaireId, Controles.arrondir(pot - retenueDette)));
+        }
 
         int suivant = t.getTourActuelIndex() + 1;
         tontineDao.changerTourActuel(t.getId(), suivant >= adhesionDao.compterActifs(t.getId()) ? 0 : suivant);
@@ -355,7 +368,7 @@ public class CycleService {
         transactionDao.insert(tx);
 
         NotificationService.notifier(beneficiaireId, "Vous recevez la cagnotte : " + Format.montant(montant)
-                + " (tontine " + t.getNom() + ", cycle " + c.getNumero() + ").", "VERSEMENT");
+                + " (tontine " + t.getNom() + ", " + Libelles.cycle(t) + " " + c.getNumero() + ").", "VERSEMENT");
         return d;
     }
 

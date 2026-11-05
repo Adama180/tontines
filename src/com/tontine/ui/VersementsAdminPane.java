@@ -40,7 +40,7 @@ public class VersementsAdminPane extends PaneGestion {
         table.setPrefHeight(480);
         table.getColumns().add(colonne("Date", l -> Aff.date(l.getDate())));
         table.getColumns().add(colonne("Tontine", LigneVersement::getTontine));
-        table.getColumns().add(colonne("Cycle", l -> String.valueOf(l.getNumeroCycle())));
+        table.getColumns().add(colonne("Cycle / tour", l -> String.valueOf(l.getNumeroCycle())));
         table.getColumns().add(colonne("B\u00e9n\u00e9ficiaire", LigneVersement::getBeneficiaire));
         table.getColumns().add(colonne("Montant", l -> Format.montant(l.getMontant())));
         table.getItems().addAll(lignes);

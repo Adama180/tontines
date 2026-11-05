@@ -1,5 +1,6 @@
 package com.tontine.ui;
 
+import com.tontine.service.Libelles;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +42,11 @@ public class CagnottePane extends VBox {
 
         String explication;
         if (t.isFondsCommun()) {
-            explication = "En fin de cycle, vous recevez votre cotisation cumul\u00e9e plus une part \u00e9gale des int\u00e9r\u00eats et des p\u00e9nalit\u00e9s collect\u00e9s.";
+            explication = "En fin de " + Libelles.cycle(t) + ", vous recevez votre cotisation cumul\u00e9e plus une part \u00e9gale des int\u00e9r\u00eats et des p\u00e9nalit\u00e9s collect\u00e9s.";
         } else if (t.isTourDeRole()) {
-            explication = "Vous recevez la cagnotte du cycle quand c'est votre tour (voir l'onglet \u00ab Tour de r\u00f4le \u00bb).";
+            explication = "Vous recevez la cagnotte du " + Libelles.cycle(t) + " quand c'est votre tour (voir l'onglet \u00ab Tour de r\u00f4le \u00bb).";
         } else {
-            explication = "Vous recevez la cagnotte du cycle si vous \u00eates tir\u00e9 au sort (voir l'onglet \u00ab Tirage au sort \u00bb).";
+            explication = "Vous recevez la cagnotte du " + Libelles.cycle(t) + " si vous \u00eates tir\u00e9 au sort (voir l'onglet \u00ab Tirage au sort \u00bb).";
         }
         getChildren().add(Composants.sousTitre(explication));
 
@@ -57,7 +58,7 @@ public class CagnottePane extends VBox {
         }
         Map<Integer, Integer> numeros = membre.numerosDeCycle(t.getId());
         for (Distribution d : versements) {
-            Label cycle = new Label("Cycle " + numeros.getOrDefault(d.getCycleId(), 0));
+            Label cycle = new Label(Libelles.cycleMaj(t) + " " + numeros.getOrDefault(d.getCycleId(), 0));
             cycle.getStyleClass().add("badge-type");
             Label montant = new Label(Format.montant(d.getMontantTotal()));
             montant.getStyleClass().add("carte-titre");

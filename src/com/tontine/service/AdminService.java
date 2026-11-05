@@ -60,7 +60,7 @@ public class AdminService {
         Controles.exigerAdmin(adminId);
         Utilisateur u = utilisateurDao.findById(userId);
         Controles.exiger(u != null, "Utilisateur introuvable.");
-        Controles.exiger(u.getId() != adminId && !u.isAdmin(), "Un compte administrateur ne peut pas etre suspendu.");
+        Controles.exiger(u.getId() != adminId && !u.isAdmin(), "Un compte administrateur ne peut pas \u00eatre suspendu.");
         utilisateurDao.changerStatut(userId, StatutCompte.SUSPENDU);
         Controles.audit(adminId, "COMPTE_SUSPENDU", u.getNomComplet() + " (" + u.getEmail() + ")");
     }
@@ -70,7 +70,7 @@ public class AdminService {
         Utilisateur u = utilisateurDao.findById(userId);
         Controles.exiger(u != null, "Utilisateur introuvable.");
         utilisateurDao.changerStatut(userId, StatutCompte.ACTIF);
-        NotificationService.notifier(userId, "Votre compte a ete reactive.", "COMPTE");
+        NotificationService.notifier(userId, "Votre compte a \u00e9t\u00e9 r\u00e9activ\u00e9.", "COMPTE");
         Controles.audit(adminId, "COMPTE_REACTIVE", u.getNomComplet() + " (" + u.getEmail() + ")");
     }
 
@@ -83,39 +83,45 @@ public class AdminService {
 
     /**
      * Accepte (cree la tontine, le demandeur en devient gerant) ou refuse. Retourne la tontine creee.
-     * Les autres regles (penalite, taux, duree des prets) sont ensuite definies par le gerant.
+     * Tous les parametres (dont la date et l'heure de cotisation) viennent de la demande du futur gerant.
      */
     public Tontine validerDemandeCreation(int adminId, int demandeId, boolean accepter) {
         Controles.exigerAdmin(adminId);
         DemandeCreation d = demandeDao.findById(demandeId);
-        Controles.exiger(d != null && d.getStatut() == StatutDemande.EN_ATTENTE, "Demande introuvable ou deja traitee.");
+        Controles.exiger(d != null && d.getStatut() == StatutDemande.EN_ATTENTE, "Demande introuvable ou d\u00e9j\u00e0 trait\u00e9e.");
 
         if (!accepter) {
             demandeDao.traiter(d.getId(), StatutDemande.REFUSEE, adminId);
-            NotificationService.notifier(d.getDemandeurId(), "Votre demande de creation de la tontine '"
-                    + d.getNomSouhaite() + "' a ete refusee.", "CREATION");
+            NotificationService.notifier(d.getDemandeurId(), "Votre demande de cr\u00e9ation de la tontine '"
+                    + d.getNomSouhaite() + "' a \u00e9t\u00e9 refus\u00e9e.", "CREATION");
             Controles.audit(adminId, "CREATION_REFUSEE", "Demande " + d.getId() + " - " + d.getNomSouhaite());
             return null;
         }
 
-        Controles.exiger(!tontineDao.nomExiste(d.getNomSouhaite()), "Une tontine porte deja ce nom.");
+        Controles.exiger(!tontineDao.nomExiste(d.getNomSouhaite()), "Une tontine porte d\u00e9j\u00e0 ce nom.");
         Utilisateur demandeur = Controles.utilisateur(d.getDemandeurId());
 
         Tontine t = new Tontine();
         t.setNom(d.getNomSouhaite());
-        t.setDescription("");
+        t.setDescription(d.getDescription() == null ? "" : d.getDescription());
         t.setType(d.getTypeSouhaite());
         t.setMontantCotisation(d.getMontant());
+        t.setMontantMaxCotisation(d.getMontantMax());
         t.setFrequence(d.getFrequence());
-        t.setDureeEnCycle(d.getNbMembre());
-        t.setPenaliteRetard(0);
+        t.setDureeEnCycle(d.getDureeEnCycle());
+        t.setPenaliteRetard(d.getPenaliteRetard());
         t.setNbMembreMax(d.getNbMembre());
+        t.setTauxInteret(d.getTauxInteret());
+        t.setDureeMaxPret(d.getDureeMaxPret());
+        t.setJourCotisation(d.getJourCotisation());
+        t.setMoisCotisation(d.getMoisCotisation());
+        t.setHeureCotisation(d.getHeureCotisation());
         t.setGerantId(demandeur.getId());
         try {
             tontineDao.insert(t);
         } catch (DaoException e) {
             if (e.estDoublon()) {
-                throw new ServiceException("Une tontine porte deja ce nom.");
+                throw new ServiceException("Une tontine porte d\u00e9j\u00e0 ce nom.");
             }
             throw e;
         }
@@ -128,9 +134,9 @@ public class AdminService {
         adhesionDao.insert(a);
 
         demandeDao.traiter(d.getId(), StatutDemande.ACCEPTEE, adminId);
-        NotificationService.notifier(demandeur.getId(), "Felicitations ! Votre tontine '" + t.getNom()
-                + "' est creee, vous en etes le gerant. Definissez ses parametres.", "CREATION");
-        Controles.audit(adminId, "CREATION_ACCEPTEE", "Tontine " + t.getNom() + " - gerant " + demandeur.getNomComplet());
+        NotificationService.notifier(demandeur.getId(), "F\u00e9licitations ! Votre tontine '" + t.getNom()
+                + "' est cr\u00e9\u00e9e avec les param\u00e8tres que vous avez d\u00e9finis : vous en \u00eates le g\u00e9rant.", "CREATION");
+        Controles.audit(adminId, "CREATION_ACCEPTEE", "Tontine " + t.getNom() + " - g\u00e9rant " + demandeur.getNomComplet());
         return t;
     }
 
@@ -176,15 +182,15 @@ public class AdminService {
             }
         }
         Controles.exiger(cycle != null && cycle.getStatut() == StatutCycle.EN_COURS,
-                "Le versement de ce tirage a deja ete effectue : il ne peut plus etre corrige.");
+                "Le versement de ce tirage a d\u00e9j\u00e0 \u00e9t\u00e9 effectu\u00e9 : il ne peut plus \u00eatre corrig\u00e9.");
         Controles.adhesionActive(t.getId(), nouveauBeneficiaireId);
         int ancien = ti.getBeneficiaireId();
         ti.setBeneficiaireId(nouveauBeneficiaireId);
         tirageDao.update(ti);
-        Controles.audit(adminId, "CORRECTION_TIRAGE", "Tontine " + t.getNom() + " - cycle " + ti.getSemaine()
-                + " - beneficiaire " + ancien + " remplace par " + nouveauBeneficiaireId + " - motif : " + motif.trim());
-        NotificationService.notifierMembres(t.getId(), "Le resultat du tirage du cycle " + ti.getSemaine()
-                + " a ete corrige par l'administrateur (tontine " + t.getNom() + ").", "TIRAGE", null);
+        Controles.audit(adminId, "CORRECTION_TIRAGE", "Tontine " + t.getNom() + " - tour " + ti.getSemaine()
+                + " - b\u00e9n\u00e9ficiaire " + ancien + " remplac\u00e9 par " + nouveauBeneficiaireId + " - motif : " + motif.trim());
+        NotificationService.notifierMembres(t.getId(), "Le r\u00e9sultat du tirage du tour " + ti.getSemaine()
+                + " a \u00e9t\u00e9 corrig\u00e9 par l'administrateur (tontine " + t.getNom() + ").", "TIRAGE", null);
         return ti;
     }
 
@@ -228,7 +234,7 @@ public class AdminService {
         Controles.exiger(tx != null, "Transaction introuvable.");
         Tontine t = Controles.tontine(tx.getTontineId());
         Controles.exiger(tx.getUserId() == t.getGerantId(),
-                "Seuls les paiements du gerant sont traites ici : les autres sont confirmes par le gerant de la tontine.");
+                "Seuls les paiements du g\u00e9rant sont trait\u00e9s ici : les autres sont confirm\u00e9s par le g\u00e9rant de la tontine.");
         Transaction resultat = new CotisationService().confirmerPaiementEspece(adminId, transactionId, accepter);
         Controles.audit(adminId, accepter ? "PAIEMENT_GERANT_CONFIRME" : "PAIEMENT_GERANT_REFUSE",
                 "Tontine " + t.getNom() + " - " + Format.montant(tx.getMontant()));

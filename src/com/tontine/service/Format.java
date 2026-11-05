@@ -21,4 +21,14 @@ public final class Format {
     public static String date(java.time.LocalDate d) {
         return d == null ? "" : String.format("%02d/%02d/%04d", d.getDayOfMonth(), d.getMonthValue(), d.getYear());
     }
+
+    /** Exemple : "21/10/2026 \u00e0 18:00". */
+    public static String dateHeure(java.time.LocalDateTime d) {
+        return d == null ? "" : date(d.toLocalDate()) + " \u00e0 " + heure(d.toLocalTime());
+    }
+
+    /** Exemple : "18:00". */
+    public static String heure(java.time.LocalTime h) {
+        return h == null ? "" : String.format("%02d:%02d", h.getHour(), h.getMinute());
+    }
 }

@@ -23,6 +23,16 @@ public class DemandeCreationDao extends BaseDao {
         o.setAdminId(getInteger(rs, "admin_id"));
         o.setPieceHash(rs.getString("piece_hash"));
         o.setPieceChemin(rs.getString("piece_chemin"));
+        o.setDescription(rs.getString("description"));
+        o.setMontantMax(getDoubleObj(rs, "montant_max"));
+        o.setDureeEnCycle(rs.getInt("duree_en_cycle"));
+        o.setPenaliteRetard(rs.getDouble("penalite_retard"));
+        o.setTauxInteret(getDoubleObj(rs, "taux_interet"));
+        o.setDureeMaxPret(getInteger(rs, "duree_max_pret"));
+        o.setJourCotisation(getInteger(rs, "jour_cotisation"));
+        o.setMoisCotisation(getInteger(rs, "mois_cotisation"));
+        java.sql.Time h = rs.getTime("heure_cotisation");
+        o.setHeureCotisation(h == null ? java.time.LocalTime.of(23, 59) : h.toLocalTime());
         return o;
     }
 
@@ -36,7 +46,7 @@ public class DemandeCreationDao extends BaseDao {
         }
 
         int id = insertReturnId(
-                "INSERT INTO `demande_creation` (`demandeur_id`,`nom_souhaite`,`type_souhaite`,`montant`,`frequence`,`nb_membre`,`date_envoi`,`statut`,`admin_id`,`piece_hash`,`piece_chemin`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO `demande_creation` (`demandeur_id`,`nom_souhaite`,`type_souhaite`,`montant`,`frequence`,`nb_membre`,`date_envoi`,`statut`,`admin_id`,`piece_hash`,`piece_chemin`,`description`,`montant_max`,`duree_en_cycle`,`penalite_retard`,`taux_interet`,`duree_max_pret`,`jour_cotisation`,`mois_cotisation`,`heure_cotisation`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 o.getDemandeurId(),
                 o.getNomSouhaite(),
                 o.getTypeSouhaite(),
@@ -47,13 +57,22 @@ public class DemandeCreationDao extends BaseDao {
                 o.getStatut(),
                 o.getAdminId(),
                 o.getPieceHash(),
-                o.getPieceChemin());
+                o.getPieceChemin(),
+                o.getDescription(),
+                o.getMontantMax(),
+                o.getDureeEnCycle(),
+                o.getPenaliteRetard(),
+                o.getTauxInteret(),
+                o.getDureeMaxPret(),
+                o.getJourCotisation(),
+                o.getMoisCotisation(),
+                java.sql.Time.valueOf(o.getHeureCotisation()));
         o.setId(id);
         return id;
     }
 
     public boolean update(DemandeCreation o) {
-        return executeUpdate("UPDATE `demande_creation` SET `demandeur_id`=?,`nom_souhaite`=?,`type_souhaite`=?,`montant`=?,`frequence`=?,`nb_membre`=?,`date_envoi`=?,`statut`=?,`admin_id`=?,`piece_hash`=?,`piece_chemin`=? WHERE `id`=?",
+        return executeUpdate("UPDATE `demande_creation` SET `demandeur_id`=?,`nom_souhaite`=?,`type_souhaite`=?,`montant`=?,`frequence`=?,`nb_membre`=?,`date_envoi`=?,`statut`=?,`admin_id`=?,`piece_hash`=?,`piece_chemin`=?,`description`=?,`montant_max`=?,`duree_en_cycle`=?,`penalite_retard`=?,`taux_interet`=?,`duree_max_pret`=?,`jour_cotisation`=?,`mois_cotisation`=?,`heure_cotisation`=? WHERE `id`=?",
                 o.getDemandeurId(),
                 o.getNomSouhaite(),
                 o.getTypeSouhaite(),
@@ -64,7 +83,16 @@ public class DemandeCreationDao extends BaseDao {
                 o.getStatut(),
                 o.getAdminId(),
                 o.getPieceHash(),
-                o.getPieceChemin(), o.getId()) > 0;
+                o.getPieceChemin(),
+                o.getDescription(),
+                o.getMontantMax(),
+                o.getDureeEnCycle(),
+                o.getPenaliteRetard(),
+                o.getTauxInteret(),
+                o.getDureeMaxPret(),
+                o.getJourCotisation(),
+                o.getMoisCotisation(),
+                java.sql.Time.valueOf(o.getHeureCotisation()), o.getId()) > 0;
     }
 
     public boolean delete(int id) {

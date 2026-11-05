@@ -16,6 +16,9 @@ public class Tontine {
     private int nbMembreMax;
     private Double tauxInteret;
     private Integer dureeMaxPret;
+    private Integer jourCotisation;
+    private Integer moisCotisation;
+    private java.time.LocalTime heureCotisation = java.time.LocalTime.of(23, 59);
     private int tourActuelIndex;
     private int gerantId;
     private StatutTontine statut;
@@ -167,5 +170,29 @@ public class Tontine {
     @Override
     public String toString() {
         return nom;
+    }
+
+    public Integer getJourCotisation() {
+        return jourCotisation;
+    }
+
+    public void setJourCotisation(Integer jourCotisation) {
+        this.jourCotisation = jourCotisation;
+    }
+
+    public Integer getMoisCotisation() {
+        return moisCotisation;
+    }
+
+    public void setMoisCotisation(Integer moisCotisation) {
+        this.moisCotisation = moisCotisation;
+    }
+
+    public java.time.LocalTime getHeureCotisation() {
+        return heureCotisation == null ? java.time.LocalTime.of(23, 59) : heureCotisation;
+    }
+
+    public void setHeureCotisation(java.time.LocalTime heureCotisation) {
+        this.heureCotisation = heureCotisation;
     }
 }

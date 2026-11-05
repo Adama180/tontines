@@ -64,7 +64,7 @@ public class TiragesAdminPane extends PaneGestion {
                 .collect(Collectors.toMap(Utilisateur::getId, u -> u));
         List<Tirage> tirages = service.tousLesTirages(admin.getId());
 
-        getChildren().add(vide("Un tirage peut \u00eatre corrig\u00e9 tant que le versement du cycle n'est pas effectu\u00e9. "
+        getChildren().add(vide("Un tirage peut \u00eatre corrig\u00e9 tant que le versement du tour n'est pas effectu\u00e9. "
                 + "La correction exige un motif, est inscrite dans le journal d'audit et pr\u00e9vient les membres."));
         getChildren().add(titreSection("Tirages (" + tirages.size() + ")"));
         if (tirages.isEmpty()) {
@@ -76,7 +76,7 @@ public class TiragesAdminPane extends PaneGestion {
             Cycle c = membre.cycleEnCours(t.getId());
             boolean corrigeable = c != null && c.getNumero() == ti.getSemaine();
 
-            VBox infos = texte("\u00ab " + t.getNom() + " \u00bb - cycle " + ti.getSemaine(),
+            VBox infos = texte("\u00ab " + t.getNom() + " \u00bb - tour " + ti.getSemaine(),
                     "B\u00e9n\u00e9ficiaire : " + (gagnant == null ? "?" : gagnant.getNomComplet()) + " - " + Aff.date(ti.getDate()));
             Label etat = new Label(corrigeable ? "Modifiable" : "Vers\u00e9");
             etat.getStyleClass().addAll("badge-statut", corrigeable ? "statut-attente" : "statut-acceptee");

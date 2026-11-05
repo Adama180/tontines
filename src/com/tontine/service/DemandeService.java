@@ -15,7 +15,6 @@ import com.tontine.dao.TontineDao;
 import com.tontine.dao.UtilisateurDao;
 import com.tontine.model.DemandeAdhesion;
 import com.tontine.model.DemandeCreation;
-import com.tontine.model.Frequence;
 import com.tontine.model.StatutDemande;
 import com.tontine.model.StatutTontine;
 import com.tontine.model.Tontine;
@@ -62,9 +61,9 @@ public class DemandeService {
         Utilisateur u = Controles.utilisateur(userId);
         Tontine t = Controles.tontine(tontineId);
         Controles.exiger(t.getStatut() == StatutTontine.ACTIVE, "Cette tontine n'accepte plus de demandes.");
-        Controles.exiger(!adhesionDao.estMembre(tontineId, userId), "Vous etes deja membre de cette tontine.");
+        Controles.exiger(!adhesionDao.estMembre(tontineId, userId), "Vous \u00eates d\u00e9j\u00e0 membre de cette tontine.");
         Controles.exiger(!demandeAdhesionDao.demandeEnAttenteExiste(tontineId, userId),
-                "Vous avez deja une demande en attente pour cette tontine.");
+                "Vous avez d\u00e9j\u00e0 une demande en attente pour cette tontine.");
 
         String[] piece = preparerPiece(pieceIdentite, userId);
 
@@ -79,26 +78,28 @@ public class DemandeService {
         demandeAdhesionDao.insert(d);
 
         NotificationService.notifier(t.getGerantId(),
-                "Nouvelle demande d'adhesion de " + u.getNomComplet() + " pour la tontine " + t.getNom() + ".",
+                "Nouvelle demande d'adh\u00e9sion de " + u.getNomComplet() + " pour la tontine " + t.getNom() + ".",
                 "ADHESION");
         return d;
     }
 
     // ---------------------------------------------------------------- creation
 
-    /** Utilisateur qui souhaite devenir gerant : la demande est validee par l'administrateur. */
-    public DemandeCreation soumettreDemandeCreation(int userId, String nomSouhaite, TypeTontine type, double montant,
-            Frequence frequence, int nbMembres, File pieceIdentite) {
+    /**
+     * Utilisateur qui souhaite devenir gerant : TOUS les parametres de la tontine (montants, frequence, date et
+     * heure de cotisation, penalites, pret...) sont definis ici, avant l'envoi. La demande est ensuite validee
+     * par l'administrateur, sans que le gerant ait d'autres parametres a definir.
+     */
+    public DemandeCreation soumettreDemandeCreation(int userId, String nomSouhaite, TypeTontine type,
+            ParametresTontine p, File pieceIdentite) {
         Utilisateur u = Controles.utilisateur(userId);
         nomSouhaite = Controles.texte(nomSouhaite, "nom de la tontine");
-        Controles.exiger(type != null, "Choisissez un type de tontine.");
-        Controles.exiger(frequence != null, "Choisissez une frequence de cotisation.");
-        Controles.exiger(montant > 0, "Le montant de la cotisation doit etre positif.");
-        Controles.exiger(nbMembres >= 2, "Une tontine doit avoir au moins 2 membres.");
-        Controles.exiger(!tontineDao.nomExiste(nomSouhaite), "Une tontine porte deja ce nom.");
+        Controles.exiger(p != null, "Les param\u00e8tres de la tontine sont obligatoires.");
+        p.controler(type, 1);
+        Controles.exiger(!tontineDao.nomExiste(nomSouhaite), "Une tontine porte d\u00e9j\u00e0 ce nom.");
         for (DemandeCreation autre : demandeCreationDao.findByStatut(StatutDemande.EN_ATTENTE)) {
             Controles.exiger(!autre.getNomSouhaite().equalsIgnoreCase(nomSouhaite),
-                    "Une demande en attente utilise deja ce nom.");
+                    "Une demande en attente utilise d\u00e9j\u00e0 ce nom.");
         }
 
         String[] piece = preparerPiece(pieceIdentite, userId);
@@ -109,25 +110,35 @@ public class DemandeService {
         d.setPieceChemin(piece[1]);
         d.setNomSouhaite(nomSouhaite);
         d.setTypeSouhaite(type);
-        d.setMontant(montant);
-        d.setFrequence(frequence);
-        d.setNbMembre(nbMembres);
+        d.setDescription(p.getDescription() == null ? "" : p.getDescription().trim());
+        d.setMontant(p.getMontantCotisation());
+        d.setMontantMax(type == TypeTontine.FONDS_COMMUN ? p.getMontantMaxCotisation() : null);
+        d.setFrequence(p.getFrequence());
+        d.setNbMembre(p.getNbMembreMax());
+        d.setDureeEnCycle(p.getDureeEnCycle());
+        d.setPenaliteRetard(p.getPenaliteRetard());
+        d.setTauxInteret(type == TypeTontine.FONDS_COMMUN ? p.getTauxInteret() : null);
+        d.setDureeMaxPret(type == TypeTontine.FONDS_COMMUN ? p.getDureeMaxPret() : null);
+        d.setJourCotisation(p.getJourCotisation());
+        d.setMoisCotisation(p.getMoisCotisation());
+        d.setHeureCotisation(p.getHeureCotisation());
         demandeCreationDao.insert(d);
 
         NotificationService.notifierAdmins(
-                "Nouvelle demande de creation de tontine '" + nomSouhaite + "' par " + u.getNomComplet() + ".",
+                "Nouvelle demande de cr\u00e9ation de tontine '" + nomSouhaite + "' par " + u.getNomComplet() + ".",
                 "CREATION");
         return d;
     }
 
     /** Visiteur qui clique sur "Creer ma propre tontine" : compte + demande en une action. */
     public Utilisateur inscrireEtDemanderCreation(String nom, String prenom, String email, String telephone,
-            String motDePasse, String nomTontine, TypeTontine type, double montant, Frequence frequence,
-            int nbMembres, File pieceIdentite) {
-        controlerPiece(pieceIdentite, -1); // verifie avant de creer le compte
+            String motDePasse, String nomTontine, TypeTontine type, ParametresTontine p, File pieceIdentite) {
+        Controles.exiger(p != null, "Les param\u00e8tres de la tontine sont obligatoires.");
+        p.controler(type, 1); // verifie avant de creer le compte
+        controlerPiece(pieceIdentite, -1);
         Utilisateur u = auth.inscrire(nom, prenom, email, telephone, motDePasse);
         try {
-            soumettreDemandeCreation(u.getId(), nomTontine, type, montant, frequence, nbMembres, pieceIdentite);
+            soumettreDemandeCreation(u.getId(), nomTontine, type, p, pieceIdentite);
         } catch (RuntimeException e) {
             utilisateurDao.delete(u.getId());
             throw e;
@@ -177,29 +188,29 @@ public class DemandeService {
             return new String[] { hash, copierPiece(piece, hash) };
         }
         String[] existante = pieceEnregistree(userId);
-        Controles.exiger(existante != null, "La piece d'identite est obligatoire.");
+        Controles.exiger(existante != null, "La pi\u00e8ce d'identit\u00e9 est obligatoire.");
         return existante;
     }
 
     /** Verifie la piece et retourne son empreinte. userId = -1 pour une personne sans compte. */
     private String controlerPiece(File piece, int userId) {
-        Controles.exiger(piece != null && piece.isFile(), "La piece d'identite est obligatoire.");
+        Controles.exiger(piece != null && piece.isFile(), "La pi\u00e8ce d'identit\u00e9 est obligatoire.");
         String nom = piece.getName().toLowerCase();
         Controles.exiger(nom.endsWith(".pdf") || nom.endsWith(".jpg") || nom.endsWith(".jpeg") || nom.endsWith(".png"),
-                "Format de piece accepte : PDF, JPG ou PNG.");
-        Controles.exiger(piece.length() <= TAILLE_MAX_PIECE, "La piece d'identite ne doit pas depasser 5 Mo.");
+                "Format de pi\u00e8ce accept\u00e9 : PDF, JPG ou PNG.");
+        Controles.exiger(piece.length() <= TAILLE_MAX_PIECE, "La pi\u00e8ce d'identit\u00e9 ne doit pas d\u00e9passer 5 Mo.");
         String hash;
         try {
             hash = HashUtil.sha256Fichier(piece);
         } catch (IOException e) {
-            throw new ServiceException("Impossible de lire la piece d'identite.");
+            throw new ServiceException("Impossible de lire la pi\u00e8ce d'identit\u00e9.");
         }
         // protection anti-doublon : la meme piece ne peut pas servir a deux personnes differentes
         DemandeAdhesion deja = demandeAdhesionDao.findByPieceHash(hash);
         DemandeCreation dejaCreation = demandeCreationDao.findByPieceHash(hash);
         Controles.exiger((deja == null || deja.getUserId() == userId)
                 && (dejaCreation == null || dejaCreation.getDemandeurId() == userId),
-                "Cette piece d'identite a deja ete utilisee par un autre compte.");
+                "Cette pi\u00e8ce d'identit\u00e9 a d\u00e9j\u00e0 \u00e9t\u00e9 utilis\u00e9e par un autre compte.");
         return hash;
     }
 
@@ -215,7 +226,7 @@ public class DemandeService {
             }
             return cible.toString();
         } catch (IOException e) {
-            throw new ServiceException("Impossible d'enregistrer la piece d'identite : " + e.getMessage());
+            throw new ServiceException("Impossible d'enregistrer la pi\u00e8ce d'identit\u00e9 : " + e.getMessage());
         }
     }
 }

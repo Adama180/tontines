@@ -38,6 +38,14 @@ public class CyclesPane extends PaneGestion {
         rafraichir();
     }
 
+    private String mot() {
+        return Libelles.cycle(tontine);
+    }
+
+    private String motMaj() {
+        return Libelles.cycleMaj(tontine);
+    }
+
     @Override
     protected void construire() {
         boutonDemarrer = null;
@@ -51,26 +59,26 @@ public class CyclesPane extends PaneGestion {
         // ---- etat du cycle
         VBox etat;
         if (cycle == null) {
-            boutonDemarrer = Composants.primaire("D\u00e9marrer un nouveau cycle");
+            boutonDemarrer = Composants.primaire("D\u00e9marrer un nouveau " + mot());
             boutonDemarrer.setOnAction(e -> action(() -> {
                 Cycle c = cycles.demarrerCycle(gerant.getId(), t.getId());
-                succes("Le cycle " + c.getNumero() + " a d\u00e9marr\u00e9. Les membres sont pr\u00e9venus.");
+                succes("Le " + mot() + " " + c.getNumero() + " a d\u00e9marr\u00e9. Les membres sont pr\u00e9venus.");
             }));
-            etat = Composants.carte(titreSection("Aucun cycle en cours"),
+            etat = Composants.carte(titreSection("Aucun " + mot() + " en cours"),
                     vide((t.isFondsCommun()
-                            ? "Le cycle se d\u00e9marre une seule fois : il dure " + t.getDureeEnCycle() + " p\u00e9riode(s) ("
+                            ? "Le " + mot() + " se d\u00e9marre une seule fois : il dure " + t.getDureeEnCycle() + " p\u00e9riode(s) ("
                                     + Libelles.periode(t.getFrequence()) + ") et chaque membre y cotise une fois par "
                                     + Libelles.periode(t.getFrequence()) + ". Les membres pourront aussi emprunter."
-                            : "D\u00e9marrez un cycle pour que les membres puissent cotiser.")),
+                            : "D\u00e9marrez un " + mot() + " pour que les membres puissent cotiser.")),
                     boutonDemarrer);
         } else {
-            boutonCloturer = Composants.primaire("Cl\u00f4turer le cycle " + cycle.getNumero());
+            boutonCloturer = Composants.primaire("Cl\u00f4turer le " + mot() + " " + cycle.getNumero());
             boutonCloturer.setOnAction(e -> action(() -> {
-                if (!Nav.confirmer("Cl\u00f4turer le cycle " + cycle.getNumero() + " ? Les sommes seront vers\u00e9es aux b\u00e9n\u00e9ficiaires.")) {
+                if (!Nav.confirmer("Cl\u00f4turer le " + mot() + " " + cycle.getNumero() + " ? Les sommes seront vers\u00e9es aux b\u00e9n\u00e9ficiaires.")) {
                     return;
                 }
                 List<Distribution> v = cycles.cloturerCycle(gerant.getId(), t.getId());
-                StringBuilder sb = new StringBuilder("Cycle " + cycle.getNumero() + " cl\u00f4tur\u00e9. Versements : ");
+                StringBuilder sb = new StringBuilder(motMaj() + " " + cycle.getNumero() + " cl\u00f4tur\u00e9. Versements : ");
                 for (int i = 0; i < v.size(); i++) {
                     sb.append(i == 0 ? "" : " ; ").append(noms.getOrDefault(v.get(i).getBeneficiaireId(), "?"))
                             .append(" ").append(Format.montant(v.get(i).getMontantTotal()));
@@ -80,12 +88,12 @@ public class CyclesPane extends PaneGestion {
                 }
                 succes(sb.toString());
             }));
-            etat = Composants.carte(titreSection("Cycle " + cycle.getNumero() + " en cours depuis le " + cycle.getDateDebut()),
+            etat = Composants.carte(titreSection(motMaj() + " " + cycle.getNumero() + " en cours depuis le " + cycle.getDateDebut()),
                     vide(t.isFondsCommun()
                             ? "Fin pr\u00e9vue le " + Format.date(CotisationService.finDeCycle(cycle, t)) + ". \u00c0 la fin, chaque membre re\u00e7oit "
                                     + "sa cagnotte plus une part \u00e9gale des p\u00e9nalit\u00e9s de retard et des int\u00e9r\u00eats. "
                                     + "Tous les pr\u00eats doivent \u00eatre rembours\u00e9s et les paiements en esp\u00e8ces confirm\u00e9s."
-                            : "\u00c0 la cl\u00f4ture, le b\u00e9n\u00e9ficiaire du cycle re\u00e7oit le total collect\u00e9. "
+                            : "\u00c0 la cl\u00f4ture, le b\u00e9n\u00e9ficiaire du " + mot() + " re\u00e7oit le total collect\u00e9. "
                                     + "Les paiements en esp\u00e8ces doivent \u00eatre confirm\u00e9s."),
                     boutonCloturer);
         }
@@ -94,9 +102,9 @@ public class CyclesPane extends PaneGestion {
         // ---- membres qui n'ont pas cotise
         if (cycle != null) {
             List<Utilisateur> sans = new CotisationService().membresSansCotisation(t.getId());
-            getChildren().add(titreSection("Cotisations du cycle"));
+            getChildren().add(titreSection("Cotisations du " + mot()));
             if (sans.isEmpty()) {
-                getChildren().add(vide("Tous les membres ont cotis\u00e9 dans ce cycle."));
+                getChildren().add(vide("Tous les membres ont cotis\u00e9 dans ce " + mot() + "."));
             } else {
                 StringBuilder sb = new StringBuilder("Pas encore cotis\u00e9 (" + sans.size() + ") : ");
                 for (int i = 0; i < sans.size(); i++) {
@@ -117,22 +125,22 @@ public class CyclesPane extends PaneGestion {
                 }
             }
             if (cycle == null) {
-                getChildren().add(vide("Le tirage se fait pendant un cycle en cours."));
+                getChildren().add(vide("Le tirage se fait pendant un " + mot() + " en cours."));
             } else if (ducycle != null) {
-                getChildren().add(ligne(texte("Tirage du cycle " + cycle.getNumero() + " effectu\u00e9",
+                getChildren().add(ligne(texte("Tirage du " + mot() + " " + cycle.getNumero() + " effectu\u00e9",
                         "B\u00e9n\u00e9ficiaire : " + noms.getOrDefault(ducycle.getBeneficiaireId(), "?")
                                 + ". Le r\u00e9sultat est d\u00e9finitif : seul l'administrateur peut le corriger, avec une trace d'audit.")));
             } else {
                 boutonTirage = Composants.or("Lancer le tirage au sort");
                 boutonTirage.setOnAction(e -> action(() -> {
-                    if (!Nav.confirmer("Lancer le tirage au sort du cycle " + cycle.getNumero() + " ? Le r\u00e9sultat est d\u00e9finitif.")) {
+                    if (!Nav.confirmer("Lancer le tirage au sort du " + mot() + " " + cycle.getNumero() + " ? Le r\u00e9sultat est d\u00e9finitif.")) {
                         return;
                     }
                     Tirage ti = cycles.lancerTirage(gerant.getId(), t.getId());
-                    succes("Tirage effectu\u00e9 : " + noms.getOrDefault(ti.getBeneficiaireId(), "?") + " recevra la cagnotte du cycle "
+                    succes("Tirage effectu\u00e9 : " + noms.getOrDefault(ti.getBeneficiaireId(), "?") + " recevra la cagnotte du " + mot() + " "
                             + cycle.getNumero() + ".");
                 }));
-                getChildren().add(ligne(texte("Tirage du cycle " + cycle.getNumero() + " pas encore fait",
+                getChildren().add(ligne(texte("Tirage du " + mot() + " " + cycle.getNumero() + " pas encore fait",
                         "Le gagnant est tir\u00e9 parmi les membres qui n'ont pas encore \u00e9t\u00e9 tir\u00e9s dans le tour en cours."), boutonTirage));
             }
         }
@@ -148,7 +156,7 @@ public class CyclesPane extends PaneGestion {
             List<DemandeTourAnticipe> demandes = cycles.demandesTourAnticipe(gerant.getId(), t.getId());
             getChildren().add(titreSection("Demandes de tour anticip\u00e9 (" + demandes.size() + ")"));
             if (demandes.isEmpty()) {
-                getChildren().add(vide("Aucune demande en attente. Une demande ne peut \u00eatre accept\u00e9e qu'entre deux cycles."));
+                getChildren().add(vide("Aucune demande en attente. Une demande ne peut \u00eatre accept\u00e9e qu'entre deux " + mot() + "s."));
             }
             for (DemandeTourAnticipe d : demandes) {
                 Button accepter = Composants.primaire("Accepter");
@@ -176,20 +184,20 @@ public class CyclesPane extends PaneGestion {
             Label montant = new Label(Format.montant(d.getMontantTotal()));
             montant.getStyleClass().add("carte-titre");
             getChildren().add(ligne(texte(noms.getOrDefault(d.getBeneficiaireId(), "?"),
-                    "Cycle " + numeros.getOrDefault(d.getCycleId(), 0) + " - " + Aff.date(d.getDate())), montant));
+                    motMaj() + " " + numeros.getOrDefault(d.getCycleId(), 0) + " - " + Aff.date(d.getDate())), montant));
         }
 
         // ---- historique des cycles
-        getChildren().add(titreSection("Historique des cycles"));
+        getChildren().add(titreSection("Historique des " + mot() + "s"));
         List<Cycle> tous = cycles.listerCycles(gerant.getId(), t.getId());
         if (tous.isEmpty()) {
-            getChildren().add(vide("Aucun cycle pour le moment."));
+            getChildren().add(vide("Aucun " + mot() + " pour le moment."));
         }
         for (int i = tous.size() - 1; i >= 0; i--) {
             Cycle c = tous.get(i);
             Label statut = new Label(c.getStatut() == StatutCycle.EN_COURS ? "En cours" : "Cl\u00f4tur\u00e9");
             statut.getStyleClass().addAll("badge-statut", c.getStatut() == StatutCycle.EN_COURS ? "statut-attente" : "statut-acceptee");
-            getChildren().add(ligne(texte("Cycle " + c.getNumero(), "Du " + c.getDateDebut()
+            getChildren().add(ligne(texte(motMaj() + " " + c.getNumero(), "Du " + c.getDateDebut()
                     + (c.getDateFin() == null ? "" : " au " + c.getDateFin())), statut));
         }
     }

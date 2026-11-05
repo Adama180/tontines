@@ -75,8 +75,7 @@ public class TontineMembreView extends VBox {
         if (tontine.isFondsCommun()) {
             ajouterOnglet("Pr\u00eats \u00e0 valider", () -> new PretsAValiderPane(utilisateur, tontine));
         }
-        ajouterOnglet("Cycles", () -> new CyclesPane(utilisateur, tontine));
-        ajouterOnglet("Param\u00e8tres", () -> new ParametresPane(utilisateur, tontine));
+        ajouterOnglet(tontine.isFondsCommun() ? "Cycles" : "Tours", () -> new CyclesPane(utilisateur, tontine));
     }
 
     protected final void ajouterOnglet(String titre, Supplier<Node> contenu) {

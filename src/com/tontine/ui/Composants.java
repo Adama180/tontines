@@ -119,7 +119,7 @@ public final class Composants {
         return v;
     }
 
-    private static final String[] COULEURS_AVATAR = { "#166534", "#b88a12", "#0f766e", "#6d28d9", "#be185d", "#1d4ed8" };
+    private static final String[] COULEURS_AVATAR = { "#2d3036", "#b88a12", "#0f766e", "#6d28d9", "#be185d", "#1d4ed8" };
 
     /** Pastille ronde avec les initiales (couleur stable pour un meme nom). */
     public static Node avatar(String nomComplet, double taille) {

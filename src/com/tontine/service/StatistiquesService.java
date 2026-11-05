@@ -45,7 +45,7 @@ public class StatistiquesService {
         i.ajouterMontant("Total cotise", a.getTotalCotise());
         i.ajouter("Cotisations effectu\u00e9es", a.getCotisationsFaites());
         Cycle c = cycleDao.findEnCours(tontineId);
-        i.ajouter("Cycle en cours", c == null ? "aucun" : "cycle " + c.getNumero());
+        i.ajouter(Libelles.cycleMaj(t) + " en cours", c == null ? "aucun" : Libelles.cycle(t) + " " + c.getNumero());
         if (t.isTourDeRole() && a.getOrdreTour() != null) {
             i.ajouter("Mon rang dans le tour", a.getOrdreTour());
         }
@@ -60,7 +60,7 @@ public class StatistiquesService {
         i.ajouter("Tontine", t.getNom() + " (" + Libelles.type(t.getType()) + ")");
         i.ajouter("Membres actifs", adhesionDao.compterActifs(tontineId) + " / " + t.getNbMembreMax());
         Cycle c = cycleDao.findEnCours(tontineId);
-        i.ajouter("Cycle en cours", c == null ? "aucun" : "cycle " + c.getNumero() + " (depuis le " + c.getDateDebut() + ")");
+        i.ajouter(Libelles.cycleMaj(t) + " en cours", c == null ? "aucun" : Libelles.cycle(t) + " " + c.getNumero() + " (depuis le " + c.getDateDebut() + ")");
         i.ajouterMontant("Total des cotisations", transactionDao.totalParType(tontineId, TypeTransaction.COTISATION));
         i.ajouterMontant("Total des p\u00e9nalit\u00e9s", transactionDao.totalParType(tontineId, TypeTransaction.PENALITE));
         i.ajouterMontant("Total vers\u00e9 aux b\u00e9n\u00e9ficiaires", transactionDao.totalParType(tontineId, TypeTransaction.DISTRIBUTION));

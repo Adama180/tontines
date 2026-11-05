@@ -39,12 +39,13 @@ public class ConsultationService {
     public List<String> reglesGenerales(Tontine t) {
         List<String> r = new ArrayList<>();
         r.add("Type : " + Libelles.type(t.getType()));
-        r.add("Cotisation : " + Format.montant(t.getMontantCotisation()) + " (" + Libelles.frequence(t.getFrequence()) + ")");
-        r.add("Penalite de retard : " + Format.montant(t.getPenaliteRetard()));
+        r.add("Cotisation : " + Libelles.cotisation(t) + " (" + Libelles.frequence(t.getFrequence()) + ")");
+        r.add("Date et heure de cotisation : " + Libelles.horaire(t));
+        r.add("P\u00e9nalit\u00e9 de retard : " + Format.montant(t.getPenaliteRetard()));
         r.add("Membres : " + nombreMembres(t.getId()) + " / " + t.getNbMembreMax());
         if (t.isFondsCommun()) {
-            r.add("Taux d'interet des prets : " + (t.getTauxInteret() == null ? "non defini" : t.getTauxInteret() + " %"));
-            r.add("Duree maximale d'un pret : " + (t.getDureeMaxPret() == null ? "non definie" : t.getDureeMaxPret() + " jours"));
+            r.add("Taux d'int\u00e9r\u00eat des pr\u00eats : " + (t.getTauxInteret() == null ? "non d\u00e9fini" : t.getTauxInteret() + " %"));
+            r.add("Dur\u00e9e maximale d'un pr\u00eat : " + (t.getDureeMaxPret() == null ? "non d\u00e9finie" : t.getDureeMaxPret() + " jours"));
         }
         return r;
     }

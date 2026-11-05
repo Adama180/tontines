@@ -109,7 +109,7 @@ final class Controles {
 
     static Cycle cycleEnCours(Tontine t) {
         Cycle c = CYCLES.findEnCours(t.getId());
-        exiger(c != null, "Aucun cycle en cours pour cette tontine. Le g\u00e9rant doit d'abord d\u00e9marrer un cycle.");
+        exiger(c != null, "Aucun " + Libelles.cycle(t) + " en cours pour cette tontine. Le g\u00e9rant doit d'abord d\u00e9marrer un " + Libelles.cycle(t) + ".");
         return c;
     }
 

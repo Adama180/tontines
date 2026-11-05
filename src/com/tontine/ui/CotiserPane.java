@@ -31,10 +31,10 @@ public class CotiserPane extends VBox {
         Cycle cycle = membre.cycleEnCours(t.getId());
 
         if (cycle == null) {
-            Label titre = new Label("Aucun cycle en cours");
+            Label titre = new Label("Aucun " + Libelles.cycle(t) + " en cours");
             titre.getStyleClass().add("carte-titre");
             getChildren().add(Composants.carte(titre, Composants.sousTitre(
-                    "Vous pourrez cotiser d\u00e8s que le g\u00e9rant aura d\u00e9marr\u00e9 un nouveau cycle.")));
+                    "Vous pourrez cotiser d\u00e8s que le g\u00e9rant aura d\u00e9marr\u00e9 un nouveau " + Libelles.cycle(t) + ".")));
             return;
         }
         boolean fondsCommun = t.isFondsCommun();
@@ -42,12 +42,12 @@ public class CotiserPane extends VBox {
         if (fondsCommun) {
             etat = new CotisationService().etatCotisation(u.getId(), t.getId());
             if (etat.termine() || !etat.peutCotiser) {
-                Label titre = new Label(etat.termine() ? "Toutes vos cotisations du cycle sont faites"
+                Label titre = new Label(etat.termine() ? "Toutes vos cotisations du " + Libelles.cycle(t) + " sont faites"
                         : "Cotisation de cette p\u00e9riode d\u00e9j\u00e0 effectu\u00e9e");
                 titre.getStyleClass().add("carte-titre");
                 String detail = etat.termine()
                         ? "Vous avez cotis\u00e9 " + etat.faites + " fois sur " + etat.attendues + ". "
-                                + "Le cycle se termine le " + Format.date(etat.finCycle) + " : chacun recevra alors sa cagnotte "
+                                + "Le " + Libelles.cycle(t) + " se termine le " + Format.date(etat.finCycle) + " : chacun recevra alors sa cagnotte "
                                 + "et une part des p\u00e9nalit\u00e9s."
                         : "Vous avez cotis\u00e9 " + etat.faites + " fois sur " + etat.attendues + ". Une seule cotisation par "
                                 + Libelles.periode(t.getFrequence()) + " : prochaine cotisation \u00e0 partir du "
@@ -59,51 +59,45 @@ public class CotiserPane extends VBox {
             Label titre = new Label("En attente du tirage au sort");
             titre.getStyleClass().add("carte-titre");
             getChildren().add(Composants.carte(titre, Composants.sousTitre(
-                    "Dans cette tontine, vous cotisez pour le b\u00e9n\u00e9ficiaire du cycle. Le tirage au sort doit d'abord avoir lieu : "
+                    "Dans cette tontine, vous cotisez pour le b\u00e9n\u00e9ficiaire du " + Libelles.cycle(t) + ". Le tirage au sort doit d'abord avoir lieu : "
                             + "le g\u00e9rant va le lancer, puis vous pourrez cotiser.")));
             return;
         } else if (etatTour(u, t).exemption != null) {
-            Label titre = new Label("Vous n'avez pas \u00e0 cotiser ce cycle");
+            Label titre = new Label("Vous n'avez pas \u00e0 cotiser ce " + Libelles.cycle(t));
             titre.getStyleClass().add("carte-titre");
             getChildren().add(Composants.carte(titre, Composants.sousTitre(etatTour(u, t).exemption
                     + " (r\u00e8gle de r\u00e9ciprocit\u00e9 : on cotise pour ceux qui ont cotis\u00e9 pour soi).")));
             return;
         } else if (membre.aDejaCotiseDansCycle(u.getId(), t.getId())) {
-            Label titre = new Label("Cotisation du cycle " + cycle.getNumero() + " d\u00e9j\u00e0 effectu\u00e9e");
+            Label titre = new Label("Cotisation du " + Libelles.cycle(t) + " " + cycle.getNumero() + " d\u00e9j\u00e0 effectu\u00e9e");
             titre.getStyleClass().add("carte-titre");
             getChildren().add(Composants.carte(titre, Composants.sousTitre(
-                    "Dans une tontine \u00e0 montant fixe, on cotise une seule fois par cycle. "
+                    "Dans une tontine \u00e0 montant fixe, on cotise une seule fois par " + Libelles.cycle(t) + ". "
                             + "Retrouvez votre paiement dans l'onglet Historique.")));
             return;
         }
         boolean fixe = !fondsCommun;
 
-        Label titre = new Label("Cotiser - cycle " + cycle.getNumero());
+        Label titre = new Label("Cotiser - " + Libelles.cycle(t) + " " + cycle.getNumero());
         titre.getStyleClass().add("carte-titre");
         String texteRegle;
         if (fondsCommun) {
             texteRegle = "Cotisation " + etat.rang + " sur " + etat.attendues + " (une par " + Libelles.periode(t.getFrequence())
-                    + "). Choisissez votre montant, entre " + Format.montant(t.getMontantCotisation()) + " et "
+                    + "). Date de cotisation : " + Libelles.horaire(t) + ". Choisissez votre montant, entre " + Format.montant(t.getMontantCotisation()) + " et "
                     + Format.montant(t.getMontantMaxCotisation() == null ? t.getMontantCotisation() : t.getMontantMaxCotisation()) + ", selon vos moyens. \u00c0 payer avant le "
-                    + Format.date(etat.echeance) + ".";
+                    + Format.dateHeure(etat.limite) + ".";
             if (etat.enRetard) {
                 texteRegle += " Vous \u00eates en retard : une p\u00e9nalit\u00e9 de " + Format.montant(etat.penalite)
-                        + " s'ajoute \u00e0 votre paiement. Elle sera partag\u00e9e entre tous les membres \u00e0 la fin du cycle.";
+                        + " sera d\u00e9duite de votre solde (vous ne payez que votre cotisation). Elle sera partag\u00e9e entre tous les membres \u00e0 la fin du " + Libelles.cycle(t) + ".";
             }
         } else {
             EtatCotisation et = etatTour(u, t);
-            texteRegle = "Montant fixe : " + Format.montant(t.getMontantCotisation()) + " (une seule cotisation par cycle)."
-                    + (et.beneficiaire == null ? "" : " Vous cotisez pour " + et.beneficiaire + ", b\u00e9n\u00e9ficiaire de ce cycle ; "
-                            + "il/elle devra cotiser pour vous quand viendra votre tour. \u00c0 payer avant le " + Format.date(et.echeance) + ".");
-            if (et.arrieres > 0) {
-                texteRegle += " P\u00e9nalit\u00e9 de non-cotisation d'un cycle pr\u00e9c\u00e9dent \u00e0 r\u00e9gler avec ce paiement : "
-                        + Format.montant(et.arrieres) + ".";
-            }
+            texteRegle = "Montant fixe : " + Format.montant(t.getMontantCotisation()) + " (une seule cotisation par " + Libelles.cycle(t) + ")."
+                    + (et.beneficiaire == null ? "" : " Vous cotisez pour " + et.beneficiaire + ", b\u00e9n\u00e9ficiaire de ce " + Libelles.cycle(t) + " ; "
+                            + "il/elle devra cotiser pour vous quand viendra votre tour. \u00c0 payer avant le " + Format.dateHeure(et.limite) + " (date de cotisation : " + Libelles.horaire(t) + ").");
             if (et.enRetard) {
-                texteRegle += " Vous \u00eates en retard : p\u00e9nalit\u00e9 de " + Format.montant(t.getPenaliteRetard()) + " en plus.";
-            }
-            if (et.penalite > 0) {
-                texteRegle += " Total \u00e0 payer : " + Format.montant(t.getMontantCotisation() + et.penalite) + ".";
+                texteRegle += " Vous \u00eates en retard : une p\u00e9nalit\u00e9 de " + Format.montant(t.getPenaliteRetard())
+                        + " sera d\u00e9duite de votre solde (vous ne payez que la cotisation).";
             }
         }
         Label regle = Composants.sousTitre(texteRegle);

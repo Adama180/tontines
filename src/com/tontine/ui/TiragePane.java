@@ -21,7 +21,7 @@ public class TiragePane extends VBox {
         super(14);
         Label titre = new Label("Tirages au sort");
         titre.getStyleClass().add("carte-titre");
-        getChildren().addAll(titre, Composants.sousTitre("\u00c0 chaque cycle, le b\u00e9n\u00e9ficiaire est tir\u00e9 au sort parmi les membres "
+        getChildren().addAll(titre, Composants.sousTitre("\u00c0 chaque tour, le b\u00e9n\u00e9ficiaire est tir\u00e9 au sort parmi les membres "
                 + "qui n'ont pas encore \u00e9t\u00e9 tir\u00e9s dans le tour en cours. Chaque r\u00e9sultat est enregistr\u00e9 "
                 + "et ne peut \u00eatre corrig\u00e9 que par l'administrateur, avec une trace dans le journal d'audit."));
 
@@ -35,7 +35,7 @@ public class TiragePane extends VBox {
             Tirage ti = tirages.get(i);
             boolean moi = ti.getBeneficiaireId() == u.getId();
             dejaTire |= moi;
-            Label cycle = new Label("Cycle " + ti.getSemaine());
+            Label cycle = new Label("Tour " + ti.getSemaine());
             cycle.getStyleClass().add("badge-type");
             Label nom = new Label(noms.getOrDefault(ti.getBeneficiaireId(), "?") + (moi ? " (vous)" : ""));
             nom.getStyleClass().add("carte-titre");

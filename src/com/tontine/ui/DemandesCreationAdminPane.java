@@ -43,8 +43,8 @@ public class DemandesCreationAdminPane extends PaneGestion {
                     ? "Aucune pi\u00e8ce jointe (demande ant\u00e9rieure \u00e0 l'ajout de la pi\u00e8ce)"
                     : "Pi\u00e8ce d'identit\u00e9 : empreinte " + d.getPieceHash().substring(0, Math.min(12, d.getPieceHash().length())) + "...";
             VBox infos = texte("\u00ab " + d.getNomSouhaite() + " \u00bb - " + Libelles.type(d.getTypeSouhaite()),
-                    "Cotisation " + Format.montant(d.getMontant()) + " (" + Libelles.frequence(d.getFrequence()) + ") - "
-                            + d.getNbMembre() + " membres\nDemandeur : " + demandeur + "\nEnvoy\u00e9e le " + Aff.date(d.getDateEnvoi())
+                    Libelles.reglesDemande(d)
+                            + "\nDemandeur : " + demandeur + "\nEnvoy\u00e9e le " + Aff.date(d.getDateEnvoi())
                             + "\n" + piece);
             Button voir = Composants.contour("Voir la pi\u00e8ce");
             voir.setDisable(d.getPieceChemin() == null);

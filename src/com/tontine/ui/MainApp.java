@@ -55,7 +55,7 @@ public class MainApp extends Application {
         try {
             Circle rond = new Circle(30, Color.web("#d4a017"));
             Label n = new Label("N");
-            n.setStyle("-fx-font-family: \"Poppins Bold\", \"Poppins\", sans-serif; -fx-font-size: 30px; -fx-text-fill: #0b2e1b;");
+            n.setStyle("-fx-font-family: \"Poppins Bold\", \"Poppins\", sans-serif; -fx-font-size: 30px; -fx-text-fill: #22252b;");
             StackPane p = new StackPane(rond, n);
             p.setPrefSize(64, 64);
             p.setMinSize(64, 64);

@@ -63,7 +63,7 @@ public class TourPane extends VBox {
 
         Label titre = new Label("Ordre des b\u00e9n\u00e9ficiaires");
         titre.getStyleClass().add("carte-titre");
-        getChildren().addAll(titre, Composants.sousTitre("\u00c0 chaque cycle, un membre re\u00e7oit le total collect\u00e9. "
+        getChildren().addAll(titre, Composants.sousTitre("\u00c0 chaque tour, un membre re\u00e7oit le total collect\u00e9. "
                 + "Chacun continue ensuite \u00e0 cotiser normalement, sans dette."));
         for (int i = 0; i < actifs.size(); i++) {
             Adhesion a = actifs.get(i).getAdhesion();
@@ -100,7 +100,7 @@ public class TourPane extends VBox {
             }
         });
         getChildren().add(Composants.carte(t2, Composants.sousTitre("Si le g\u00e9rant accepte, vous passez avant le prochain "
-                + "b\u00e9n\u00e9ficiaire. Cela se fait entre deux cycles."), Composants.champ("Motif", motif), msg, boutonDemander));
+                + "b\u00e9n\u00e9ficiaire. Cela se fait entre deux tours."), Composants.champ("Motif", motif), msg, boutonDemander));
 
         // ---- mes demandes
         List<DemandeTourAnticipe> mes = new MembreService().mesDemandesTourAnticipe(u.getId(), t.getId());

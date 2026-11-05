@@ -33,7 +33,7 @@ public class DemandesAdhesionPane extends PaneGestion {
         ConsultationService consultation = new ConsultationService();
         Tontine t = consultation.detail(tontine.getId());
         getChildren().add(vide("Places : " + consultation.nombreMembres(t.getId()) + " / " + t.getNbMembreMax() + ". "
-                + (t.isFondsCommun() ? "" : "Dans cette tontine, une adh\u00e9sion ne peut \u00eatre accept\u00e9e qu'entre deux cycles.")));
+                + (t.isFondsCommun() ? "" : "Dans cette tontine, une adh\u00e9sion ne peut \u00eatre accept\u00e9e qu'entre deux tours.")));
 
         List<DemandeAdhesion> attente = adhesions.listerDemandes(gerant.getId(), t.getId(), StatutDemande.EN_ATTENTE);
         getChildren().add(titreSection("Demandes en attente (" + attente.size() + ")"));

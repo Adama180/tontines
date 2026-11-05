@@ -23,6 +23,10 @@ public class TontineDao extends BaseDao {
         o.setNbMembreMax(rs.getInt("nb_membre_max"));
         o.setTauxInteret(getDoubleObj(rs, "taux_interet"));
         o.setDureeMaxPret(getInteger(rs, "duree_max_pret"));
+        o.setJourCotisation(getInteger(rs, "jour_cotisation"));
+        o.setMoisCotisation(getInteger(rs, "mois_cotisation"));
+        java.sql.Time h = rs.getTime("heure_cotisation");
+        o.setHeureCotisation(h == null ? java.time.LocalTime.of(23, 59) : h.toLocalTime());
         o.setTourActuelIndex(rs.getInt("tour_actuel_index"));
         o.setGerantId(rs.getInt("gerant_id"));
         o.setStatut(enumOf(StatutTontine.class, rs.getString("statut")));
@@ -40,7 +44,7 @@ public class TontineDao extends BaseDao {
         }
 
         int id = insertReturnId(
-                "INSERT INTO `tontine` (`nom`,`description`,`type`,`montant_cotisation`,`montant_max_cotisation`,`frequence`,`duree_en_cycle`,`penalite_retard`,`nb_membre_max`,`taux_interet`,`duree_max_pret`,`tour_actuel_index`,`gerant_id`,`statut`,`date_creation`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO `tontine` (`nom`,`description`,`type`,`montant_cotisation`,`montant_max_cotisation`,`frequence`,`duree_en_cycle`,`penalite_retard`,`nb_membre_max`,`taux_interet`,`duree_max_pret`,`jour_cotisation`,`mois_cotisation`,`heure_cotisation`,`tour_actuel_index`,`gerant_id`,`statut`,`date_creation`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 o.getNom(),
                 o.getDescription(),
                 o.getType(),
@@ -52,6 +56,9 @@ public class TontineDao extends BaseDao {
                 o.getNbMembreMax(),
                 o.getTauxInteret(),
                 o.getDureeMaxPret(),
+                o.getJourCotisation(),
+                o.getMoisCotisation(),
+                java.sql.Time.valueOf(o.getHeureCotisation()),
                 o.getTourActuelIndex(),
                 o.getGerantId(),
                 o.getStatut(),
@@ -61,7 +68,7 @@ public class TontineDao extends BaseDao {
     }
 
     public boolean update(Tontine o) {
-        return executeUpdate("UPDATE `tontine` SET `nom`=?,`description`=?,`type`=?,`montant_cotisation`=?,`montant_max_cotisation`=?,`frequence`=?,`duree_en_cycle`=?,`penalite_retard`=?,`nb_membre_max`=?,`taux_interet`=?,`duree_max_pret`=?,`tour_actuel_index`=?,`gerant_id`=?,`statut`=?,`date_creation`=? WHERE `id`=?",
+        return executeUpdate("UPDATE `tontine` SET `nom`=?,`description`=?,`type`=?,`montant_cotisation`=?,`montant_max_cotisation`=?,`frequence`=?,`duree_en_cycle`=?,`penalite_retard`=?,`nb_membre_max`=?,`taux_interet`=?,`duree_max_pret`=?,`jour_cotisation`=?,`mois_cotisation`=?,`heure_cotisation`=?,`tour_actuel_index`=?,`gerant_id`=?,`statut`=?,`date_creation`=? WHERE `id`=?",
                 o.getNom(),
                 o.getDescription(),
                 o.getType(),
@@ -73,6 +80,9 @@ public class TontineDao extends BaseDao {
                 o.getNbMembreMax(),
                 o.getTauxInteret(),
                 o.getDureeMaxPret(),
+                o.getJourCotisation(),
+                o.getMoisCotisation(),
+                java.sql.Time.valueOf(o.getHeureCotisation()),
                 o.getTourActuelIndex(),
                 o.getGerantId(),
                 o.getStatut(),
