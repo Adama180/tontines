@@ -30,7 +30,7 @@ import com.tontine.model.Utilisateur;
 
 /**
  * Cotisations (Wave, Orange Money, especes), confirmation des paiements en especes et historique.
- * Fonds commun : montant libre dans l'intervalle defini par le gerant (minimum 1 000 FCFA), une cotisation par periode (semaine, mois, annee) pendant tout le cycle,
+ * Fonds commun : montant libre dans l'intervalle defini par le gerant (minimum 1 000 FCFA), une cotisation par periode (jour, semaine ou mois) pendant tout le cycle,
  * penalite de retard si elle est payee apres la fin de sa periode. Tour de role / tirage au sort : montant fixe, une par cycle.
  */
 public class CotisationService {
@@ -268,7 +268,7 @@ public class CotisationService {
         adhesionDao.enregistrerCotisation(a.getId(), tx.getMontant());
         LocalDateTime limite = t.isFondsCommun() ? echeanceMembre(t, c, a, tx)
                 : limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
-        if (t.getPenaliteRetard() > 0 && tx.getDate().isAfter(limite)) {
+        if (t.getPenaliteRetard() > 0 && retardPenalise(limite, tx.getDate())) {
             // la penalite n'est pas payee en plus : elle est retiree du solde du membre
             double prelevee = prelever(t, c, a, t.getPenaliteRetard(), "PEN-" + tx.getId(), tx.getModePaiement());
             if (prelevee > 0) {
@@ -333,13 +333,23 @@ public class CotisationService {
         return false;
     }
 
+    /** Fin du jour de la date limite (23 h 59) : au-dela, le membre n'est plus "en retard" mais "absent". */
+    public static LocalDateTime finDeJourLimite(LocalDateTime limite) {
+        return limite.toLocalDate().atTime(23, 59, 59);
+    }
+
+    /** Retard penalisable : apres la date et l'heure limites mais au plus tard a 23 h 59 du meme jour. */
+    public static boolean retardPenalise(LocalDateTime limite, LocalDateTime instant) {
+        return instant.isAfter(limite) && !instant.isAfter(finDeJourLimite(limite));
+    }
+
     /** Penalite qui sera retiree du solde du membre s'il cotise maintenant (retard). */
     private double penalitesPrevues(Tontine t, Cycle c, int userId) {
         if (t.isFondsCommun()) {
             return etatCotisation(userId, t.getId()).penalite;
         }
         double total = 0;
-        if (t.getPenaliteRetard() > 0 && LocalDateTime.now().isAfter(limite(t, c.getDateDebut(), echeance(c, t.getFrequence())))) {
+        if (t.getPenaliteRetard() > 0 && retardPenalise(limite(t, c.getDateDebut(), echeance(c, t.getFrequence())), LocalDateTime.now())) {
             total += t.getPenaliteRetard();
         }
         return Controles.arrondir(total);
@@ -357,7 +367,8 @@ public class CotisationService {
         e.exemption = motifExemption(t, c, userId);
         e.limite = limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
         e.echeance = e.limite.toLocalDate();
-        e.enRetard = t.getPenaliteRetard() > 0 && LocalDateTime.now().isAfter(e.limite);
+        e.enRetard = LocalDateTime.now().isAfter(e.limite);
+        e.absent = LocalDateTime.now().isAfter(finDeJourLimite(e.limite)) && cotisationDuCycle(c, userId) <= 0 && e.exemption == null;
         e.penalite = penalitesPrevues(t, c, userId);
         e.faites = cotisationDuCycle(c, userId) > 0 ? 1 : 0;
         e.attendues = e.exemption == null ? 1 : 0;
@@ -366,37 +377,33 @@ public class CotisationService {
     }
 
     /**
-     * Cloture d'un tour de role : chaque membre qui devait cotiser et ne l'a pas fait subit une penalite de
-     * non-cotisation (montant fixe par le gerant), retiree de son solde. Les dispenses ne paient rien.
+     * Cloture d'un tour de role / tirage : un membre qui devait cotiser et ne l'a pas fait est marque ABSENT (simple
+     * notification, AUCUNE penalite : la penalite ne vise que le retard de moins de 24 h apres la date limite).
      */
-    void enregistrerImpayes(Tontine t, Cycle c) {
-        if (t.isFondsCommun() || t.getPenaliteRetard() <= 0) {
+    void signalerAbsents(Tontine t, Cycle c) {
+        if (t.isFondsCommun()) {
             return;
         }
         for (Adhesion a : adhesionDao.findByTontine(t.getId())) {
             if (a.getStatut() == StatutAdhesion.ACTIF && cotisationDuCycle(c, a.getUserId()) <= 0
                     && motifExemption(t, c, a.getUserId()) == null) {
-                double prelevee = prelever(t, c, a, t.getPenaliteRetard(), "IMPAYE-" + c.getNumero(), null);
                 NotificationService.notifier(a.getUserId(), "Vous n'avez pas cotis\u00e9 au " + Libelles.cycle(t) + " " + c.getNumero()
-                        + " : p\u00e9nalit\u00e9 de " + Format.montant(prelevee)
-                        + " d\u00e9duite de votre solde (tontine " + t.getNom() + ").", "PENALITE");
+                        + " : vous \u00eates marqu\u00e9(e) absent(e) (tontine " + t.getNom() + ").", "ABSENCE");
             }
         }
     }
 
     // ---------------------------------------------------------------- fonds commun : une cotisation par periode
 
-    /** Date de debut de la periode numero p (0 = debut du cycle) : debut + p semaines, mois ou annees. */
+    /** Date de debut de la periode numero p (0 = debut du cycle) : debut + p jours, semaines ou mois. */
     static LocalDate debutPeriode(Cycle c, Frequence f, int p) {
         switch (f) {
         case JOURNALIERE:
             return c.getDateDebut().plusDays(p);
         case HEBDOMADAIRE:
             return c.getDateDebut().plusWeeks(p);
-        case MENSUELLE:
-            return c.getDateDebut().plusMonths(p);
         default:
-            return c.getDateDebut().plusYears(p);
+            return c.getDateDebut().plusMonths(p);
         }
     }
 
@@ -449,28 +456,19 @@ public class CotisationService {
 
     /**
      * Date et heure limites d'une cotisation pour la periode [debut, fin] : le jour choisi par le gerant (jour de la
-     * semaine, du mois ou de l'annee selon la frequence) a l'heure choisie. Sans jour defini, c'est la fin de periode.
+     * semaine, du mois, ou chaque jour) a l'heure choisie. Sans jour defini, c'est la fin de periode.
      */
     public static LocalDateTime limite(Tontine t, LocalDate debut, LocalDate fin) {
         LocalDate d = fin;
         Integer j = t.getJourCotisation();
         if (j != null && t.getFrequence() != Frequence.JOURNALIERE) {
-            switch (t.getFrequence()) {
-            case HEBDOMADAIRE:
+            if (t.getFrequence() == Frequence.HEBDOMADAIRE) {
                 d = fin.with(TemporalAdjusters.previousOrSame(DayOfWeek.of(j)));
-                break;
-            case MENSUELLE:
+            } else {
                 d = jourPresent(fin.getYear(), fin.getMonthValue(), j);
                 if (d.isAfter(fin)) {
-                    LocalDate precedent = fin.withDayOfMonth(1).minusMonths(1);
+                    LocalDate precedent = fin.minusMonths(1);
                     d = jourPresent(precedent.getYear(), precedent.getMonthValue(), j);
-                }
-                break;
-            default:
-                int mois = t.getMoisCotisation() == null ? fin.getMonthValue() : t.getMoisCotisation();
-                d = jourPresent(fin.getYear(), mois, j);
-                if (d.isAfter(fin)) {
-                    d = jourPresent(fin.getYear() - 1, mois, j);
                 }
             }
             if (d.isBefore(debut)) {
@@ -480,14 +478,14 @@ public class CotisationService {
         return LocalDateTime.of(d, t.getHeureCotisation());
     }
 
-    /** Le jour demande du mois, ramene au dernier jour du mois s'il n'existe pas (ex. 31 en juin). */
+    /** Le jour demande du mois, ramene au dernier jour du mois s'il n'existe pas (ex. 31 en fevrier). */
     private static LocalDate jourPresent(int annee, int mois, int jour) {
         return LocalDate.of(annee, mois, Math.min(jour, YearMonth.of(annee, mois).lengthOfMonth()));
     }
 
     /**
      * Situation du membre dans le fonds commun : cotisations faites / attendues, peut-il cotiser maintenant,
-     * date limite et penalite eventuelle. Une seule cotisation par periode ; en retard, la penalite s'ajoute.
+     * date limite et penalite eventuelle. Une seule cotisation par periode ; en retard, la penalite est retiree du solde.
      */
     public EtatCotisation etatCotisation(int userId, int tontineId) {
         Tontine t = Controles.tontine(tontineId);
@@ -511,7 +509,8 @@ public class CotisationService {
         e.peutCotiser = !aujourdhui.isBefore(debut);
         e.disponibleLe = debut;
         e.enRetard = LocalDateTime.now().isAfter(e.limite);
-        e.penalite = e.enRetard ? t.getPenaliteRetard() : 0;
+        e.absent = LocalDateTime.now().isAfter(finDeJourLimite(e.limite));
+        e.penalite = retardPenalise(e.limite, LocalDateTime.now()) ? t.getPenaliteRetard() : 0;
         return e;
     }
 
@@ -528,10 +527,8 @@ public class CotisationService {
             return c.getDateDebut().plusDays(1);
         case HEBDOMADAIRE:
             return c.getDateDebut().plusWeeks(1);
-        case MENSUELLE:
-            return c.getDateDebut().plusMonths(1);
         default:
-            return c.getDateDebut().plusYears(1);
+            return c.getDateDebut().plusMonths(1);
         }
     }
 }

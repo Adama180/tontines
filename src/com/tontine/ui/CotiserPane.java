@@ -86,19 +86,11 @@ public class CotiserPane extends VBox {
                     + "). Date de cotisation : " + Libelles.horaire(t) + ". Choisissez votre montant, entre " + Format.montant(t.getMontantCotisation()) + " et "
                     + Format.montant(t.getMontantMaxCotisation() == null ? t.getMontantCotisation() : t.getMontantMaxCotisation()) + ", selon vos moyens. \u00c0 payer avant le "
                     + Format.dateHeure(etat.limite) + ".";
-            if (etat.enRetard) {
-                texteRegle += " Vous \u00eates en retard : une p\u00e9nalit\u00e9 de " + Format.montant(etat.penalite)
-                        + " sera d\u00e9duite de votre solde (vous ne payez que votre cotisation). Elle sera partag\u00e9e entre tous les membres \u00e0 la fin du " + Libelles.cycle(t) + ".";
-            }
         } else {
             EtatCotisation et = etatTour(u, t);
             texteRegle = "Montant fixe : " + Format.montant(t.getMontantCotisation()) + " (une seule cotisation par " + Libelles.cycle(t) + ")."
                     + (et.beneficiaire == null ? "" : " Vous cotisez pour " + et.beneficiaire + ", b\u00e9n\u00e9ficiaire de ce " + Libelles.cycle(t) + " ; "
                             + "il/elle devra cotiser pour vous quand viendra votre tour. \u00c0 payer avant le " + Format.dateHeure(et.limite) + " (date de cotisation : " + Libelles.horaire(t) + ").");
-            if (et.enRetard) {
-                texteRegle += " Vous \u00eates en retard : une p\u00e9nalit\u00e9 de " + Format.montant(t.getPenaliteRetard())
-                        + " sera d\u00e9duite de votre solde (vous ne payez que la cotisation).";
-            }
         }
         Label regle = Composants.sousTitre(texteRegle);
         montant.setText(Aff.nombre(t.getMontantCotisation()));

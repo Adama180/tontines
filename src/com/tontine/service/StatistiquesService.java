@@ -62,7 +62,6 @@ public class StatistiquesService {
         Cycle c = cycleDao.findEnCours(tontineId);
         i.ajouter(Libelles.cycleMaj(t) + " en cours", c == null ? "aucun" : Libelles.cycle(t) + " " + c.getNumero() + " (depuis le " + c.getDateDebut() + ")");
         i.ajouterMontant("Total des cotisations", transactionDao.totalParType(tontineId, TypeTransaction.COTISATION));
-        i.ajouterMontant("Total des p\u00e9nalit\u00e9s", transactionDao.totalParType(tontineId, TypeTransaction.PENALITE));
         i.ajouterMontant("Total vers\u00e9 aux b\u00e9n\u00e9ficiaires", transactionDao.totalParType(tontineId, TypeTransaction.DISTRIBUTION));
         if (t.isFondsCommun()) {
             i.ajouterMontant("Fonds disponible", new PretService().fondsDisponible(tontineId));

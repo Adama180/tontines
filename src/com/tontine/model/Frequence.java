@@ -4,6 +4,5 @@ package com.tontine.model;
 public enum Frequence {
     JOURNALIERE,
     HEBDOMADAIRE,
-    MENSUELLE,
-    ANNUELLE
+    MENSUELLE
 }

@@ -29,10 +29,10 @@ public final class Libelles {
     public static String descriptionType(TypeTontine t) {
         switch (t) {
         case FONDS_COMMUN:
-            return "Chaque membre cotise une fois par p\u00e9riode (semaine, mois ou ann\u00e9e) pendant tout le cycle, "
+            return "Chaque membre cotise une fois par p\u00e9riode (jour, semaine ou mois) pendant tout le cycle, "
                     + "d\u00e9marr\u00e9 une seule fois. Les membres peuvent emprunter sur ce fonds avec un int\u00e9r\u00eat ; "
-                    + "toute cotisation en retard co\u00fbte une p\u00e9nalit\u00e9. \u00c0 la fin du cycle, chacun re\u00e7oit sa "
-                    + "cagnotte plus une part \u00e9gale des p\u00e9nalit\u00e9s et des int\u00e9r\u00eats.";
+                    + "une p\u00e9nalit\u00e9 de retard facultative peut \u00eatre fix\u00e9e par le g\u00e9rant. \u00c0 la fin du cycle, chacun re\u00e7oit sa "
+                    + "cagnotte plus une part \u00e9gale des int\u00e9r\u00eats.";
         case TOUR_DE_ROLE:
             return "Montant fixe identique pour tous. \u00c0 chaque p\u00e9riode, un membre re\u00e7oit le total "
                     + "collect\u00e9, selon un ordre qui peut \u00eatre anticip\u00e9 sur demande au g\u00e9rant.";
@@ -51,10 +51,8 @@ public final class Libelles {
             return "Journali\u00e8re";
         case HEBDOMADAIRE:
             return "Hebdomadaire";
-        case MENSUELLE:
-            return "Mensuelle";
         default:
-            return "Annuelle";
+            return "Mensuelle";
         }
     }
 
@@ -67,7 +65,7 @@ public final class Libelles {
         return Format.montant(t.getMontantCotisation());
     }
 
-    /** Nom de la periode de cotisation : semaine, mois ou annee. */
+    /** Nom de la periode de cotisation : jour, semaine ou mois. */
     public static String periode(Frequence f) {
         if (f == null) {
             return "";
@@ -77,10 +75,8 @@ public final class Libelles {
             return "jour";
         case HEBDOMADAIRE:
             return "semaine";
-        case MENSUELLE:
-            return "mois";
         default:
-            return "ann\u00e9e";
+            return "mois";
         }
     }
 
@@ -129,7 +125,7 @@ public final class Libelles {
     }
 
     /** Date et heure de cotisation en clair, ex. "chaque lundi avant 18:00". */
-    public static String horaire(com.tontine.model.Frequence f, Integer jour, Integer mois, java.time.LocalTime heure) {
+    public static String horaire(com.tontine.model.Frequence f, Integer jour, java.time.LocalTime heure) {
         if (f == null) {
             return "";
         }
@@ -139,21 +135,18 @@ public final class Libelles {
             return "chaque jour avant " + h;
         case HEBDOMADAIRE:
             return jour == null ? "en fin de semaine, avant " + h : "chaque " + jourSemaine(jour) + " avant " + h;
-        case MENSUELLE:
+        default:
             return jour == null ? "en fin de mois, avant " + h
                     : "le " + (jour == 1 ? "1er" : String.valueOf(jour)) + " de chaque mois avant " + h;
-        default:
-            return jour == null || mois == null ? "en fin d'ann\u00e9e, avant " + h
-                    : "le " + (jour == 1 ? "1er" : String.valueOf(jour)) + " " + mois(mois) + " de chaque ann\u00e9e avant " + h;
         }
     }
 
     public static String horaire(com.tontine.model.Tontine t) {
-        return horaire(t.getFrequence(), t.getJourCotisation(), t.getMoisCotisation(), t.getHeureCotisation());
+        return horaire(t.getFrequence(), t.getJourCotisation(), t.getHeureCotisation());
     }
 
     public static String horaire(com.tontine.model.DemandeCreation d) {
-        return horaire(d.getFrequence(), d.getJourCotisation(), d.getMoisCotisation(), d.getHeureCotisation());
+        return horaire(d.getFrequence(), d.getJourCotisation(), d.getHeureCotisation());
     }
 
     /** Resume de toutes les regles d'une demande de creation, pour l'administrateur et le demandeur. */
@@ -171,7 +164,8 @@ public final class Libelles {
         if (fc) {
             sb.append(" Cycle de ").append(d.getDureeEnCycle()).append(" p\u00e9riode(s).");
         }
-        sb.append(" P\u00e9nalit\u00e9 : ").append(Format.montant(d.getPenaliteRetard())).append(".");
+        sb.append(d.getPenaliteRetard() > 0 ? " P\u00e9nalit\u00e9 de retard (avant 23 h 59 le jour limite) : " + Format.montant(d.getPenaliteRetard()) + "."
+                : " Aucune p\u00e9nalit\u00e9 de retard.");
         if (fc && d.getTauxInteret() != null) {
             sb.append(" Pr\u00eats \u00e0 ").append(d.getTauxInteret()).append(" % sur ").append(d.getDureeMaxPret())
                     .append(" jour(s) maximum.");

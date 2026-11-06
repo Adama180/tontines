@@ -6,11 +6,13 @@ import java.util.List;
 import com.tontine.dao.AdhesionDao;
 import com.tontine.dao.CycleDao;
 import com.tontine.dao.DemandeAdhesionDao;
+import com.tontine.dao.DemandeDepartDao;
 import com.tontine.dao.PretDao;
 import com.tontine.dao.TontineDao;
 import com.tontine.dao.UtilisateurDao;
 import com.tontine.model.Adhesion;
 import com.tontine.model.DemandeAdhesion;
+import com.tontine.model.DemandeDepart;
 import com.tontine.model.StatutAdhesion;
 import com.tontine.model.StatutDemande;
 import com.tontine.model.StatutPret;
@@ -23,6 +25,7 @@ public class AdhesionService {
 
     private final AdhesionDao adhesionDao = new AdhesionDao();
     private final DemandeAdhesionDao demandeDao = new DemandeAdhesionDao();
+    private final DemandeDepartDao departDao = new DemandeDepartDao();
     private final TontineDao tontineDao = new TontineDao();
     private final CycleDao cycleDao = new CycleDao();
     private final PretDao pretDao = new PretDao();
@@ -50,7 +53,6 @@ public class AdhesionService {
             return null;
         }
 
-        Controles.exiger(t.getStatut() == StatutTontine.ACTIVE, "Cette tontine est cl\u00f4tur\u00e9e.");
         if (!t.isFondsCommun()) {
             Controles.exiger(cycleDao.findEnCours(t.getId()) == null,
                     "Dans une tontine \u00e0 tour de r\u00f4le ou \u00e0 tirage au sort, un membre ne peut \u00eatre accept\u00e9 "
@@ -99,8 +101,16 @@ public class AdhesionService {
         Tontine t = Controles.tontine(a.getTontineId());
         Controles.exigerGerant(t, gerantId);
         Controles.exiger(a.getUserId() != gerantId, "Le g\u00e9rant ne peut pas se d\u00e9sactiver lui-m\u00eame.");
+        retirer(t, a);
+        NotificationService.notifier(a.getUserId(),
+                "Vous avez \u00e9t\u00e9 retir\u00e9 de la tontine " + t.getNom() + ".", "ADHESION");
+        Controles.audit(gerantId, "MEMBRE_DESACTIVE", "Adh\u00e9sion " + a.getId() + " - tontine " + t.getNom());
+    }
+
+    /** Controles communs puis desactivation d'une adhesion (retrait par le gerant ou depart accepte). */
+    void retirer(Tontine t, Adhesion a) {
         Controles.exiger(a.getStatut() == StatutAdhesion.ACTIF, "Ce membre est d\u00e9j\u00e0 d\u00e9sactiv\u00e9.");
-        Controles.exiger(Math.abs(a.getSolde()) < 0.005,
+        Controles.exiger(Math.abs(adhesionDao.findById(a.getId()).getSolde()) < 0.005,
                 "Ce membre a un solde dans la tontine : il doit \u00eatre r\u00e9gl\u00e9 avant la d\u00e9sactivation.");
         Controles.exiger(pretDao.findEnCours(t.getId(), a.getUserId()).isEmpty()
                 && pretDao.findByTontineEtStatut(t.getId(), StatutPret.EN_ATTENTE).stream()
@@ -111,9 +121,83 @@ public class AdhesionService {
                     "Un membre ne peut \u00eatre d\u00e9sactiv\u00e9 qu'entre deux tours.");
         }
         adhesionDao.changerStatut(a.getId(), StatutAdhesion.INACTIF);
-        NotificationService.notifier(a.getUserId(),
-                "Vous avez \u00e9t\u00e9 retir\u00e9 de la tontine " + t.getNom() + ".", "ADHESION");
-        Controles.audit(gerantId, "MEMBRE_DESACTIVE", "Adh\u00e9sion " + a.getId() + " - tontine " + t.getNom());
+    }
+
+    // ---------------------------------------------------------------- depart d'un membre (tontine terminee)
+
+    /**
+     * Un membre demande a quitter la tontine : possible seulement quand elle est terminee (tous les membres ont recu
+     * leur cagnotte) et avant qu'elle soit relancee. Le gerant ne peut pas quitter sa propre tontine.
+     */
+    public DemandeDepart demanderDepart(int userId, int tontineId, String motif) {
+        Tontine t = Controles.tontine(tontineId);
+        Adhesion a = Controles.adhesionActive(tontineId, userId);
+        Controles.exiger(t.getGerantId() != userId, "Le g\u00e9rant ne peut pas quitter sa propre tontine.");
+        Controles.exiger(estTerminee(t),
+                "Vous pourrez demander \u00e0 quitter la tontine quand elle sera termin\u00e9e (tous les membres ont re\u00e7u leur cagnotte), "
+                        + "avant qu'elle soit relanc\u00e9e.");
+        for (DemandeDepart d : departDao.findByUser(userId)) {
+            Controles.exiger(d.getTontineId() != tontineId || d.getStatut() != StatutDemande.EN_ATTENTE,
+                    "Vous avez d\u00e9j\u00e0 une demande de d\u00e9part en attente.");
+        }
+        DemandeDepart d = new DemandeDepart();
+        d.setTontineId(tontineId);
+        d.setUserId(userId);
+        d.setMotif(motif == null || motif.trim().isEmpty() ? "Aucun motif indiqu\u00e9" : motif.trim());
+        departDao.insert(d);
+        NotificationService.notifier(t.getGerantId(), "Demande de d\u00e9part de "
+                + Controles.utilisateur(a.getUserId()).getNomComplet() + " (tontine " + t.getNom() + ").", "ADHESION");
+        return d;
+    }
+
+    /** Vrai si la tontine est terminee et en attente de relance (aucun cycle en cours). */
+    public boolean estTerminee(Tontine t) {
+        Tontine frais = tontineDao.findById(t.getId());
+        return frais != null && frais.getStatut() == StatutTontine.CLOTUREE && cycleDao.findEnCours(t.getId()) == null;
+    }
+
+    public List<DemandeDepart> demandesDepart(int gerantId, int tontineId) {
+        Tontine t = Controles.tontine(tontineId);
+        Controles.exigerGerant(t, gerantId);
+        return departDao.findByTontineEtStatut(tontineId, StatutDemande.EN_ATTENTE);
+    }
+
+    public List<DemandeDepart> mesDemandesDepart(int userId, int tontineId) {
+        List<DemandeDepart> liste = new ArrayList<>();
+        for (DemandeDepart d : departDao.findByUser(userId)) {
+            if (d.getTontineId() == tontineId) {
+                liste.add(d);
+            }
+        }
+        return liste;
+    }
+
+    /** Le gerant accepte (le membre est retire de la tontine) ou refuse une demande de depart. */
+    public void traiterDemandeDepart(int gerantId, int demandeId, boolean accepter) {
+        DemandeDepart d = departDao.findById(demandeId);
+        Controles.exiger(d != null && d.getStatut() == StatutDemande.EN_ATTENTE, "Demande introuvable ou d\u00e9j\u00e0 trait\u00e9e.");
+        Tontine t = Controles.tontine(d.getTontineId());
+        Controles.exigerGerant(t, gerantId);
+        if (accepter) {
+            Controles.exiger(estTerminee(t), "La tontine a d\u00e9j\u00e0 \u00e9t\u00e9 relanc\u00e9e : le d\u00e9part n'est plus possible.");
+            Adhesion a = adhesionDao.findByTontineEtUser(t.getId(), d.getUserId());
+            Controles.exiger(a != null, "Ce membre n'est plus dans la tontine.");
+            retirer(t, a);
+        }
+        departDao.changerStatut(d.getId(), accepter ? StatutDemande.ACCEPTEE : StatutDemande.REFUSEE);
+        NotificationService.notifier(d.getUserId(), accepter
+                ? "Votre d\u00e9part de la tontine " + t.getNom() + " a \u00e9t\u00e9 accept\u00e9 : vous n'en faites plus partie."
+                : "Votre demande de d\u00e9part de la tontine " + t.getNom() + " a \u00e9t\u00e9 refus\u00e9e.", "ADHESION");
+        Controles.audit(gerantId, accepter ? "DEPART_ACCEPTE" : "DEPART_REFUSE", "Demande " + d.getId() + " - tontine " + t.getNom());
+    }
+
+    /** Appele a la relance de la tontine : les demandes de depart encore en attente ne sont plus possibles. */
+    void refuserDepartsEnAttente(Tontine t) {
+        for (DemandeDepart d : departDao.findByTontineEtStatut(t.getId(), StatutDemande.EN_ATTENTE)) {
+            departDao.changerStatut(d.getId(), StatutDemande.REFUSEE);
+            NotificationService.notifier(d.getUserId(), "La tontine " + t.getNom()
+                    + " a \u00e9t\u00e9 relanc\u00e9e avant le traitement de votre demande de d\u00e9part : elle est refus\u00e9e.", "ADHESION");
+        }
     }
 
     /** Definit les regles de la tontine (entre deux cycles uniquement). */
@@ -135,10 +219,9 @@ public class AdhesionService {
         t.setMontantMaxCotisation(t.isFondsCommun() ? p.getMontantMaxCotisation() : null);
         t.setFrequence(p.getFrequence());
         t.setDureeEnCycle(p.getDureeEnCycle());
-        t.setPenaliteRetard(p.getPenaliteRetard());
         t.setNbMembreMax(p.getNbMembreMax());
+        t.setPenaliteRetard(p.getPenaliteRetard());
         t.setJourCotisation(p.getJourCotisation());
-        t.setMoisCotisation(p.getMoisCotisation());
         t.setHeureCotisation(p.getHeureCotisation());
         tontineDao.update(t);
         Controles.audit(gerantId, "PARAMETRES_MODIFIES", "Tontine " + t.getNom());

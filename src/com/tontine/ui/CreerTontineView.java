@@ -37,13 +37,12 @@ public class CreerTontineView extends VBox {
     private final TextField montant = new TextField();
     private final TextField montantMax = new TextField();
     private final TextField dureeCycle = new TextField();
-    private final TextField penalite = new TextField();
     private final TextField nbMembres = new TextField();
     private final TextField taux = new TextField();
     private final TextField dureeMaxPret = new TextField();
     private final ComboBox<Integer> jourSemaine = new ComboBox<>();
     private final ComboBox<Integer> jourMois = new ComboBox<>();
-    private final ComboBox<Integer> mois = new ComboBox<>();
+    private final TextField penalite = new TextField();
     private final ComboBox<Integer> heure = new ComboBox<>();
     private final ComboBox<Integer> minute = new ComboBox<>();
     private final ChoixPiece piece = new ChoixPiece();
@@ -84,10 +83,6 @@ public class CreerTontineView extends VBox {
         for (int j = 1; j <= 31; j++) {
             jourMois.getItems().add(j);
         }
-        for (int m = 1; m <= 12; m++) {
-            mois.getItems().add(m);
-        }
-        mois.setConverter(texteInt(Libelles::mois));
         for (int h = 0; h < 24; h++) {
             heure.getItems().add(h);
         }
@@ -97,18 +92,17 @@ public class CreerTontineView extends VBox {
         minute.getItems().add(59);
         heure.setConverter(texteInt(h -> String.format("%02d h", h)));
         minute.setConverter(texteInt(m -> String.format("%02d min", m)));
-        for (ComboBox<?> c : new ComboBox<?>[] { type, frequence, jourSemaine, jourMois, mois, heure, minute }) {
+        for (ComboBox<?> c : new ComboBox<?>[] { type, frequence, jourSemaine, jourMois, heure, minute }) {
             c.setMaxWidth(Double.MAX_VALUE);
         }
         type.getSelectionModel().select(TypeTontine.FONDS_COMMUN);
         frequence.getSelectionModel().select(Frequence.MENSUELLE);
         jourSemaine.getSelectionModel().select(Integer.valueOf(1));
         jourMois.getSelectionModel().select(Integer.valueOf(5));
-        mois.getSelectionModel().select(Integer.valueOf(1));
+        penalite.setText("0");
         heure.getSelectionModel().select(Integer.valueOf(18));
         minute.getSelectionModel().select(Integer.valueOf(0));
         dureeCycle.setText("12");
-        penalite.setText("0");
 
         nom.setPromptText("Nom unique dans toute l'application");
         description.setPromptText("Facultatif : objectif de la tontine");
@@ -131,7 +125,7 @@ public class CreerTontineView extends VBox {
         for (TextField tf : new TextField[] { montant, montantMax, nbMembres, dureeCycle }) {
             tf.textProperty().addListener((o, a, b) -> majRecap());
         }
-        for (ComboBox<?> c : new ComboBox<?>[] { jourSemaine, jourMois, mois, heure, minute }) {
+        for (ComboBox<?> c : new ComboBox<?>[] { jourSemaine, jourMois, heure, minute }) {
             c.valueProperty().addListener((o, a, b) -> majRecap());
         }
 
@@ -242,28 +236,21 @@ public class CreerTontineView extends VBox {
             grille.add(Composants.champ("Jour de cotisation (jour de la semaine)", jourSemaine), 0, r);
             grille.add(heureBox(), 1, r);
             break;
-        case MENSUELLE:
+        default:
             grille.add(Composants.champ("Jour de cotisation (jour du mois)", jourMois), 0, r);
             grille.add(heureBox(), 1, r);
             break;
-        default:
-            grille.add(Composants.champ("Mois de cotisation", mois), 0, r);
-            grille.add(Composants.champ("Jour du mois", jourMois), 1, r);
-            r++;
-            grille.add(heureBox(), 0, r);
         }
         r++;
         if (fc) {
             grille.add(Composants.champ("Dur\u00e9e d'un cycle (en p\u00e9riodes)", dureeCycle), 0, r);
             grille.add(Composants.champ("Nombre maximum de membres", nbMembres), 1, r);
             r++;
-            grille.add(Composants.champ("P\u00e9nalit\u00e9 de retard (FCFA)", penalite), 0, r);
-            grille.add(Composants.champ("Taux d'int\u00e9r\u00eat des pr\u00eats (%)", taux), 1, r);
+            grille.add(Composants.champ("Taux d'int\u00e9r\u00eat des pr\u00eats (%)", taux), 0, r);
+            grille.add(Composants.champ("Dur\u00e9e maximale d'un pr\u00eat (jours)", dureeMaxPret), 1, r);
             r++;
-            grille.add(Composants.champ("Dur\u00e9e maximale d'un pr\u00eat (jours)", dureeMaxPret), 0, r);
-        } else {
-            grille.add(Composants.champ("P\u00e9nalit\u00e9 de retard ou de non-cotisation (FCFA)", penalite), 0, r);
         }
+        grille.add(Composants.champ("P\u00e9nalit\u00e9 de retard (FCFA, facultative : 0 = aucune)", penalite), 0, r);
         majRecap();
     }
 
@@ -280,9 +267,8 @@ public class CreerTontineView extends VBox {
 
     private String horaireChoisi() {
         Frequence f = frequence.getValue();
-        Integer jour = f == Frequence.HEBDOMADAIRE ? jourSemaine.getValue()
-                : f == Frequence.MENSUELLE || f == Frequence.ANNUELLE ? jourMois.getValue() : null;
-        return Libelles.horaire(f, jour, f == Frequence.ANNUELLE ? mois.getValue() : null, heureChoisie());
+        Integer jour = f == Frequence.HEBDOMADAIRE ? jourSemaine.getValue() : f == Frequence.MENSUELLE ? jourMois.getValue() : null;
+        return Libelles.horaire(f, jour, heureChoisie());
     }
 
     private void majRecap() {
@@ -316,7 +302,6 @@ public class CreerTontineView extends VBox {
         p.setFrequence(f);
         p.setMontantCotisation(Saisie.montant(montant.getText(), fc ? "Montant minimum" : "Montant de la cotisation"));
         p.setNbMembreMax(Saisie.entier(nbMembres.getText(), "Nombre maximum de membres"));
-        p.setPenaliteRetard(Saisie.montant(penalite.getText(), "P\u00e9nalit\u00e9 de retard"));
         if (fc) {
             p.setMontantMaxCotisation(Saisie.montant(montantMax.getText(), "Montant maximum"));
             p.setDureeEnCycle(Saisie.entier(dureeCycle.getText(), "Dur\u00e9e d'un cycle"));
@@ -330,10 +315,8 @@ public class CreerTontineView extends VBox {
             p.setJourCotisation(jourSemaine.getValue());
         } else if (f == Frequence.MENSUELLE) {
             p.setJourCotisation(jourMois.getValue());
-        } else if (f == Frequence.ANNUELLE) {
-            p.setMoisCotisation(mois.getValue());
-            p.setJourCotisation(jourMois.getValue());
         }
+        p.setPenaliteRetard(Saisie.montant(penalite.getText(), "P\u00e9nalit\u00e9 de retard"));
         return p;
     }
 

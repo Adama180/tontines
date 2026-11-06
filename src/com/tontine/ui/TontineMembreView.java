@@ -42,6 +42,11 @@ public class TontineMembreView extends VBox {
         Label role = new Label(a == null ? "" : Libelles.role(a.getRole()));
         role.getStyleClass().add("badge");
         HBox entete = new HBox(12, nom, Aff.badge(Libelles.type(tontine.getType())), role);
+        if (new com.tontine.service.AdhesionService().estTerminee(tontine)) {
+            Label terminee = new Label("Termin\u00e9e : en attente de relance");
+            terminee.getStyleClass().add("badge");
+            entete.getChildren().add(terminee);
+        }
         entete.setAlignment(Pos.CENTER_LEFT);
 
         ajouterOnglet("Vue d'ensemble", () -> new VueEnsemblePane(utilisateur, tontine));
@@ -57,6 +62,9 @@ public class TontineMembreView extends VBox {
             ajouterOnglet("Tirage au sort", () -> new TiragePane(utilisateur, tontine));
         }
         ajouterOnglet("Ma cagnotte", () -> new CagnottePane(utilisateur, tontine));
+        if (tontine.getGerantId() != utilisateur.getId()) {
+            ajouterOnglet("Renouvellement", () -> new RenouvellementMembrePane(utilisateur, tontine));
+        }
         ajouterOngletsSupplementaires();
 
         onglets.getSelectionModel().selectedItemProperty().addListener((o, ancien, tab) -> charger(tab));
@@ -71,6 +79,7 @@ public class TontineMembreView extends VBox {
         }
         ajouterOnglet("Demandes d'adh\u00e9sion", () -> new DemandesAdhesionPane(utilisateur, tontine));
         ajouterOnglet("Membres", () -> new MembresGerantPane(utilisateur, tontine));
+        ajouterOnglet("Renouvellement", () -> new RenouvellementGerantPane(utilisateur, tontine));
         ajouterOnglet("Esp\u00e8ces", () -> new EspecesPane(utilisateur, tontine));
         if (tontine.isFondsCommun()) {
             ajouterOnglet("Pr\u00eats \u00e0 valider", () -> new PretsAValiderPane(utilisateur, tontine));

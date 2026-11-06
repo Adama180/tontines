@@ -87,7 +87,7 @@ public class DemandeService {
 
     /**
      * Utilisateur qui souhaite devenir gerant : TOUS les parametres de la tontine (montants, frequence, date et
-     * heure de cotisation, penalites, pret...) sont definis ici, avant l'envoi. La demande est ensuite validee
+     * heure de cotisation, pret...) sont definis ici, avant l'envoi. La demande est ensuite validee
      * par l'administrateur, sans que le gerant ait d'autres parametres a definir.
      */
     public DemandeCreation soumettreDemandeCreation(int userId, String nomSouhaite, TypeTontine type,
@@ -116,11 +116,9 @@ public class DemandeService {
         d.setFrequence(p.getFrequence());
         d.setNbMembre(p.getNbMembreMax());
         d.setDureeEnCycle(p.getDureeEnCycle());
-        d.setPenaliteRetard(p.getPenaliteRetard());
         d.setTauxInteret(type == TypeTontine.FONDS_COMMUN ? p.getTauxInteret() : null);
         d.setDureeMaxPret(type == TypeTontine.FONDS_COMMUN ? p.getDureeMaxPret() : null);
         d.setJourCotisation(p.getJourCotisation());
-        d.setMoisCotisation(p.getMoisCotisation());
         d.setHeureCotisation(p.getHeureCotisation());
         demandeCreationDao.insert(d);
 

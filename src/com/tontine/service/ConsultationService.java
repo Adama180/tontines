@@ -41,7 +41,6 @@ public class ConsultationService {
         r.add("Type : " + Libelles.type(t.getType()));
         r.add("Cotisation : " + Libelles.cotisation(t) + " (" + Libelles.frequence(t.getFrequence()) + ")");
         r.add("Date et heure de cotisation : " + Libelles.horaire(t));
-        r.add("P\u00e9nalit\u00e9 de retard : " + Format.montant(t.getPenaliteRetard()));
         r.add("Membres : " + nombreMembres(t.getId()) + " / " + t.getNbMembreMax());
         if (t.isFondsCommun()) {
             r.add("Taux d'int\u00e9r\u00eat des pr\u00eats : " + (t.getTauxInteret() == null ? "non d\u00e9fini" : t.getTauxInteret() + " %"));

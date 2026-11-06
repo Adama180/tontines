@@ -58,8 +58,10 @@ public class CycleService {
     public Cycle demarrerCycle(int gerantId, int tontineId) {
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
-        Controles.exiger(t.getStatut() == StatutTontine.ACTIVE, "Cette tontine est cl\u00f4tur\u00e9e.");
         Controles.exiger(cycleDao.findEnCours(tontineId) == null, "Un " + Libelles.cycle(t) + " est d\u00e9j\u00e0 en cours.");
+        if (t.getStatut() == StatutTontine.CLOTUREE) { // relance : ceux qui n'ont pas repondu a l'alerte sont retires
+            new RenouvellementService().preparerRelance(t, gerantId);
+        }
         Controles.exiger(adhesionDao.compterActifs(tontineId) >= 2,
                 "Il faut au moins 2 membres actifs pour d\u00e9marrer un " + Libelles.cycle(t) + ".");
         if (t.isFondsCommun()) {
@@ -75,6 +77,10 @@ public class CycleService {
         c.setNumero(cycleDao.dernierNumero(tontineId) + 1);
         c.setDateDebut(LocalDate.now());
         cycleDao.insert(c);
+        if (t.getStatut() == StatutTontine.CLOTUREE) { // relance d'une tontine terminee : elle redevient visible
+            tontineDao.changerStatut(tontineId, StatutTontine.ACTIVE);
+            new AdhesionService().refuserDepartsEnAttente(t);
+        }
 
         NotificationService.notifierMembres(tontineId, "Le " + Libelles.cycle(t) + " " + c.getNumero() + " de la tontine "
                 + t.getNom() + " a d\u00e9marr\u00e9. Pensez \u00e0 cotiser !", "CYCLE", null);
@@ -95,6 +101,14 @@ public class CycleService {
         cycleDao.cloturer(c.getId(), LocalDate.now());
         NotificationService.notifierMembres(tontineId, "Le " + Libelles.cycle(t) + " " + c.getNumero() + " de la tontine "
                 + t.getNom() + " est cl\u00f4tur\u00e9.", "CYCLE", null);
+        // tontine terminee : fonds commun apres son cycle ; tour de role / tirage quand tous les membres ont recu leur cagnotte
+        boolean terminee = t.isFondsCommun() || tontineDao.findById(tontineId).getTourActuelIndex() == 0;
+        if (terminee) {
+            tontineDao.changerStatut(tontineId, StatutTontine.CLOTUREE);
+            NotificationService.notifierMembres(tontineId, "La tontine " + t.getNom() + " est termin\u00e9e : "
+                    + (t.isFondsCommun() ? "chaque membre a re\u00e7u sa cagnotte" : "tous les membres ont re\u00e7u leur cagnotte")
+                    + ". Le g\u00e9rant va vous envoyer une alerte de renouvellement : vous pourrez valider (continuer) ou refuser (quitter la tontine).", "CYCLE", null);
+        }
         Controles.audit(gerantId, "CYCLE_CLOTURE", "Tontine " + t.getNom() + " - " + Libelles.cycle(t) + " " + c.getNumero());
         return versements;
     }
@@ -249,21 +263,15 @@ public class CycleService {
 
         List<Adhesion> actifs = actifs(t.getId());
 
-        // cotisations jamais payees : une penalite par cotisation manquante, retenue sur la cagnotte du membre
+        // cotisations jamais payees : le membre est marque absent (aucune penalite)
         CotisationService cotisations = new CotisationService();
-        Map<Integer, Double> retenues = new HashMap<>();
-        double totalRetenues = 0;
         for (Adhesion a : actifs) {
             int manquantes = cotisations.cotisationsManquantes(t, c, a);
-            double retenue = Controles.arrondir(Math.min(Math.max(0, a.getSolde()), manquantes * t.getPenaliteRetard()));
-            if (retenue > 0) {
-                retenues.put(a.getUserId(), retenue);
-                totalRetenues += retenue;
-                NotificationService.notifier(a.getUserId(), manquantes + " cotisation(s) manquante(s) : p\u00e9nalit\u00e9 de "
-                        + Format.montant(retenue) + " retenue sur votre cagnotte (tontine " + t.getNom() + ").", "PENALITE");
+            if (manquantes > 0) {
+                NotificationService.notifier(a.getUserId(), "Absent(e) \u00e0 " + manquantes + " cotisation(s) de ce " + Libelles.cycle(t)
+                        + " (tontine " + t.getNom() + ") : aucune p\u00e9nalit\u00e9, mais ces absences sont not\u00e9es.", "ABSENCE");
             }
         }
-        pot = Controles.arrondir(pot + totalRetenues);
 
         double partEgale = actifs.isEmpty() ? 0 : Math.floor(pot * 100.0 / actifs.size()) / 100.0;
         double reste = pot;
@@ -278,8 +286,7 @@ public class CycleService {
                 part = restants == 0 ? Controles.arrondir(reste) : partEgale; // le dernier recoit l'arrondi
                 reste = Controles.arrondir(reste - part);
             }
-            double retenue = retenues.getOrDefault(a.getUserId(), 0.0);
-            double montant = Controles.arrondir(Math.max(0, a.getSolde()) - retenue + part);
+            double montant = Controles.arrondir(Math.max(0, a.getSolde()) + part);
             if (montant > 0) {
                 versements.add(verser(t, c, a.getUserId(), montant));
             }
@@ -309,8 +316,8 @@ public class CycleService {
 
         Controles.exiger(transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.COTISATION) > 0,
                 "Aucune cotisation n'a \u00e9t\u00e9 collect\u00e9e dans ce " + Libelles.cycle(t) + ".");
-        // penalites de non-cotisation : retirees du solde des membres defaillants et versees au beneficiaire
-        new CotisationService().enregistrerImpayes(t, c);
+        // non-cotisation : le membre est marque absent (aucune penalite)
+        new CotisationService().signalerAbsents(t, c);
         double pot = Controles.arrondir(transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.COTISATION)
                 + transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.PENALITE));
 
