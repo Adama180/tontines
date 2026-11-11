@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table demande_tour_anticipe : demande d'un membre d'une tontine à tour de rôle. */
+/** Table demande_tour_anticipe : demande d'un membre d'une tontine \u00e0 tour de r\u00f4le. */
 public class DemandeTourAnticipe {
     private int id;
     private int tontineId;

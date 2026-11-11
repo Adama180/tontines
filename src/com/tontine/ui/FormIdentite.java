@@ -18,7 +18,7 @@ public class FormIdentite extends FlowPane {
     public FormIdentite() {
         super(16, 14);
         email.setPromptText("exemple@mail.com");
-        telephone.setPromptText("77 000 00 00");
+        telephone.setPromptText("77 123 45 67 (S\u00e9n\u00e9gal, +221)");
         motDePasse.setPromptText("6 caract\u00e8res minimum");
         getChildren().addAll(
                 colonne("Nom", nom), colonne("Pr\u00e9nom", prenom),

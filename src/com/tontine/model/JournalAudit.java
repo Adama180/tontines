@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table journal_audit : trace des actions sensibles (consultée par l'administrateur). */
+/** Table journal_audit : trace des actions sensibles (consult\u00e9e par l'administrateur). */
 public class JournalAudit {
     private int id;
     private Integer userId;

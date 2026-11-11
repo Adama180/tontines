@@ -23,8 +23,8 @@ public final class PasserelleSimulee {
                 "Choisissez un mode de paiement mobile.");
         String n = numero == null ? "" : numero.replaceAll("[\\s.-]", "");
         Controles.exiger(n.matches("^\\+?[0-9]{8,15}$"),
-                "Numero " + Libelles.mode(mode) + " invalide (8 a 15 chiffres).");
-        Controles.exiger(montant > 0, "Le montant doit etre positif.");
+                "Num\u00e9ro " + Libelles.mode(mode) + " invalide (8 \u00e0 15 chiffres).");
+        Controles.exiger(montant > 0, "Le montant doit \u00eatre positif.");
         String prefixe = mode == ModePaiement.WAVE ? "WAVE" : "OM";
         return prefixe + "-" + DateTimeFormatter.ofPattern("yyMMddHHmmss").format(LocalDateTime.now())
                 + "-" + (1000 + RANDOM.nextInt(9000));

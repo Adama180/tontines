@@ -91,7 +91,7 @@ public class CyclesPane extends PaneGestion {
             etat = Composants.carte(titreSection(motMaj() + " " + cycle.getNumero() + " en cours depuis le " + cycle.getDateDebut()),
                     vide(t.isFondsCommun()
                             ? "Fin pr\u00e9vue le " + Format.date(CotisationService.finDeCycle(cycle, t)) + ". \u00c0 la fin, chaque membre re\u00e7oit "
-                                    + "sa cagnotte plus une part \u00e9gale des p\u00e9nalit\u00e9s de retard et des int\u00e9r\u00eats. "
+                                    + "sa cagnotte plus une part \u00e9gale des int\u00e9r\u00eats. "
                                     + "Tous les pr\u00eats doivent \u00eatre rembours\u00e9s et les paiements en esp\u00e8ces confirm\u00e9s."
                             : "\u00c0 la cl\u00f4ture, le b\u00e9n\u00e9ficiaire du " + mot() + " re\u00e7oit le total collect\u00e9. "
                                     + "Les paiements en esp\u00e8ces doivent \u00eatre confirm\u00e9s."),

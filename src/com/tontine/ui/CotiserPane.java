@@ -86,11 +86,25 @@ public class CotiserPane extends VBox {
                     + "). Date de cotisation : " + Libelles.horaire(t) + ". Choisissez votre montant, entre " + Format.montant(t.getMontantCotisation()) + " et "
                     + Format.montant(t.getMontantMaxCotisation() == null ? t.getMontantCotisation() : t.getMontantMaxCotisation()) + ", selon vos moyens. \u00c0 payer avant le "
                     + Format.dateHeure(etat.limite) + ".";
+            if (t.getPenaliteRetard() > 0) {
+                texteRegle += " P\u00e9nalit\u00e9 : " + Format.montant(t.getPenaliteRetard())
+                        + ", retir\u00e9e de votre solde si vous cotisez apr\u00e8s la date limite mais avant 23 h 59 le m\u00eame jour. Au-del\u00e0, vous \u00eates marqu\u00e9(e) absent(e), sans p\u00e9nalit\u00e9. Les p\u00e9nalit\u00e9s sont partag\u00e9es entre tous les membres \u00e0 la fin du " + Libelles.cycle(t) + ".";
+            }
+            if (etat.absent) {
+                texteRegle += " Date limite d\u00e9pass\u00e9e de plus de 23 h 59 : vous \u00eates marqu\u00e9(e) absent(e) pour cette cotisation (sans p\u00e9nalit\u00e9).";
+            }
         } else {
             EtatCotisation et = etatTour(u, t);
             texteRegle = "Montant fixe : " + Format.montant(t.getMontantCotisation()) + " (une seule cotisation par " + Libelles.cycle(t) + ")."
                     + (et.beneficiaire == null ? "" : " Vous cotisez pour " + et.beneficiaire + ", b\u00e9n\u00e9ficiaire de ce " + Libelles.cycle(t) + " ; "
                             + "il/elle devra cotiser pour vous quand viendra votre tour. \u00c0 payer avant le " + Format.dateHeure(et.limite) + " (date de cotisation : " + Libelles.horaire(t) + ").");
+            if (t.getPenaliteRetard() > 0) {
+                texteRegle += " P\u00e9nalit\u00e9 : " + Format.montant(t.getPenaliteRetard())
+                        + ", retir\u00e9e de votre solde si vous cotisez apr\u00e8s la date limite mais avant 23 h 59 le m\u00eame jour (vous ne payez que la cotisation). Au-del\u00e0, vous \u00eates marqu\u00e9(e) absent(e), sans p\u00e9nalit\u00e9.";
+            }
+            if (et.absent) {
+                texteRegle += " Date limite d\u00e9pass\u00e9e de plus de 23 h 59 : vous \u00eates marqu\u00e9(e) absent(e) pour ce " + Libelles.cycle(t) + " (sans p\u00e9nalit\u00e9).";
+            }
         }
         Label regle = Composants.sousTitre(texteRegle);
         montant.setText(Aff.nombre(t.getMontantCotisation()));

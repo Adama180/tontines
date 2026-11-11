@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table distribution : montant reversé à la clôture d'un cycle ou d'un tour. */
+/** Table distribution : montant revers\u00e9 \u00e0 la cl\u00f4ture d'un cycle ou d'un tour. */
 public class Distribution {
     private int id;
     private int cycleId;

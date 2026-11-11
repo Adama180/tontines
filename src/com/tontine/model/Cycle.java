@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDate;
 
-/** Table cycle : une période de cotisation d'une tontine. */
+/** Table cycle : une p\u00e9riode de cotisation d'une tontine. */
 public class Cycle {
     private int id;
     private int tontineId;

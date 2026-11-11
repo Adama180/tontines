@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table pret : prêt sur le fonds commun (Type 1 uniquement). */
+/** Table pret : pr\u00eat sur le fonds commun (Type 1 uniquement). */
 public class Pret {
     private int id;
     private int tontineId;

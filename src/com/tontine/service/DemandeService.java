@@ -118,6 +118,7 @@ public class DemandeService {
         d.setDureeEnCycle(p.getDureeEnCycle());
         d.setTauxInteret(type == TypeTontine.FONDS_COMMUN ? p.getTauxInteret() : null);
         d.setDureeMaxPret(type == TypeTontine.FONDS_COMMUN ? p.getDureeMaxPret() : null);
+        d.setPenaliteRetard(p.getPenaliteRetard());
         d.setJourCotisation(p.getJourCotisation());
         d.setHeureCotisation(p.getHeureCotisation());
         demandeCreationDao.insert(d);

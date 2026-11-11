@@ -46,10 +46,10 @@ public class TontinesAdminPane extends PaneGestion {
         for (Tontine t : tontines) {
             Utilisateur g = users.get(t.getGerantId());
             boolean cloturee = t.getStatut() == StatutTontine.CLOTUREE;
-            Label statut = new Label(cloturee ? "Cl\u00f4tur\u00e9e" : "Ouverte");
+            Label statut = new Label(cloturee ? "Termin\u00e9e" : "Ouverte");
             statut.getStyleClass().addAll("badge-statut", cloturee ? "statut-refusee" : "statut-acceptee");
             VBox infos = texte(t.getNom() + " - " + Libelles.type(t.getType()),
-                    "G\u00e9rant : " + (g == null ? "?" : g.getNomComplet()) + " - cotisation " + Format.montant(t.getMontantCotisation())
+                    "G\u00e9rant : " + (g == null ? "?" : g.getNomComplet()) + " - cotisation " + Libelles.cotisation(t)
                             + " (" + Libelles.frequence(t.getFrequence()) + ") - " + consultation.nombreMembres(t.getId()) + " / "
                             + t.getNbMembreMax() + " membres");
             boolean ouvert = ouvertes.contains(t.getId());

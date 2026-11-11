@@ -757,15 +757,17 @@ public class TestServices {
         Utilisateur p1 = inscrire("ts-p1");
         Utilisateur p2 = inscrire("ts-p2");
         Utilisateur p3 = inscrire("ts-p3");
+        Utilisateur p4 = inscrire("ts-p4");
         DemandeCreation dc = creation(k.getId(), nomUnique("Tirage"), TypeTontine.TIRAGE_AU_SORT,
-                2000, Frequence.HEBDOMADAIRE, 4);
+                2000, Frequence.HEBDOMADAIRE, 5);
         Tontine t = admin.validerDemandeCreation(adminId, dc.getId(), true);
         rejoindre(t, k, p1);
         rejoindre(t, k, p2);
         rejoindre(t, k, p3);
+        rejoindre(t, k, p4);
 
         Set<Integer> gagnants = new HashSet<>();
-        for (int cycle = 1; cycle <= 4; cycle++) {
+        for (int cycle = 1; cycle <= 5; cycle++) {
             cycles.demarrerCycle(k.getId(), t.getId());
             erreur("Cloture impossible sans tirage (cycle " + cycle + ")", () -> cycles.cloturerCycle(k.getId(), t.getId()));
             erreur("Tirage au sort : cotisation impossible avant le tirage (cycle " + cycle + ")",
@@ -775,30 +777,48 @@ public class TestServices {
             cotisations.payerCotisation(p1.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000021");
             cotisations.payerCotisation(p2.getId(), t.getId(), 2000, ModePaiement.ORANGE_MONEY, "770000022");
             cotisations.payerCotisation(p3.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000023");
+            cotisations.payerCotisation(p4.getId(), t.getId(), 2000, ModePaiement.WAVE, "770000024");
             erreur("Un seul tirage par cycle (cycle " + cycle + ")", () -> cycles.lancerTirage(k.getId(), t.getId()));
             gagnants.add(ti.getBeneficiaireId());
             List<Distribution> v = cycles.cloturerCycle(k.getId(), t.getId());
-            verifier("Cycle " + cycle + " : le gagnant recoit 8 000",
-                    v.get(0).getBeneficiaireId() == ti.getBeneficiaireId() && Math.abs(v.get(0).getMontantTotal() - 8000) < 0.005);
+            verifier("Cycle " + cycle + " : le gagnant recoit 10 000",
+                    v.get(0).getBeneficiaireId() == ti.getBeneficiaireId() && Math.abs(v.get(0).getMontantTotal() - 10000) < 0.005);
         }
-        verifier("Les 4 membres ont ete tires chacun une fois", gagnants.size() == 4);
-        verifier("Historique des tirages", cycles.listerTirages(k.getId(), t.getId()).size() == 4);
+        verifier("Les 5 membres ont ete tires chacun une fois", gagnants.size() == 5);
+        verifier("Historique des tirages", cycles.listerTirages(k.getId(), t.getId()).size() == 5);
 
-        // ---- renouvellement : p1 valide, p2 refuse, p3 ne repond pas (= refus) -> p2 et p3 sont retires
-        renouv.lancerAlerte(k.getId(), t.getId());
+        // ---- renouvellement : p1 valide, p2 refuse, p3 depasse le delai (retrait automatique), p4 ne repond pas (retire a la relance)
+        erreur("Delai de reponse invalide", () -> renouv.lancerAlerte(k.getId(), t.getId(), 0));
+        renouv.lancerAlerte(k.getId(), t.getId(), 24);
+        verifier("Delai de reponse enregistre (24 h)",
+                renouv.alertes(k.getId(), t.getId()).stream().allMatch(x -> x.getDateLimite() != null
+                        && x.getDateLimite().isAfter(LocalDateTime.now().plusHours(23))));
+        verifier("Delai non depasse : personne n'est retire automatiquement", renouv.appliquerEcheances() == 0);
         renouv.repondre(p1.getId(), t.getId(), true);
         renouv.repondre(p2.getId(), t.getId(), false);
         verifier("Refus explicite : p2 est retire automatiquement",
                 new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p2.getId()).getStatut() == com.tontine.model.StatutAdhesion.INACTIF);
         verifier("Le gerant est prevenu du refus",
                 com.tontine.service.NotificationService.lister(k.getId()).stream().anyMatch(n -> n.getMessage().contains("ne continue pas")));
-        verifier("Avant la relance, p3 (sans reponse) est encore membre",
-                new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p3.getId()).getStatut() == com.tontine.model.StatutAdhesion.ACTIF);
+        // le delai de p3 et p4 est depasse : retrait automatique, sans aucune action du gerant
+        try (Connection cn = ConnexionBD.getConnection(); Statement st = cn.createStatement()) {
+            st.executeUpdate("UPDATE renouvellement SET date_limite = DATE_SUB(NOW(), INTERVAL 1 HOUR) WHERE tontine_id = " + t.getId()
+                    + " AND user_id = " + p3.getId());
+        }
+        verifier("Delai depasse : 1 membre retire automatiquement", renouv.appliquerEcheances() == 1);
+        verifier("Delai depasse : p3 est retire sans action du gerant",
+                new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p3.getId()).getStatut() == com.tontine.model.StatutAdhesion.INACTIF);
+        verifier("Delai depasse : p3 et le gerant sont notifies",
+                com.tontine.service.NotificationService.lister(p3.getId()).stream().anyMatch(n -> n.getMessage().contains("retir"))
+                && com.tontine.service.NotificationService.lister(k.getId()).stream().anyMatch(n -> n.getMessage().contains("pas r")));
+        erreur("Reponse impossible apres le retrait", () -> renouv.repondre(p3.getId(), t.getId(), true));
+        verifier("Avant la relance, p4 (sans reponse, delai en cours) est encore membre",
+                new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p4.getId()).getStatut() == com.tontine.model.StatutAdhesion.ACTIF);
         cycles.demarrerCycle(k.getId(), t.getId());
-        verifier("Pas de reponse = refus : p3 est retire automatiquement a la relance ; p1 reste",
-                new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p3.getId()).getStatut() == com.tontine.model.StatutAdhesion.INACTIF
+        verifier("Pas de reponse = refus : p4 est retire automatiquement a la relance ; p1 reste",
+                new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p4.getId()).getStatut() == com.tontine.model.StatutAdhesion.INACTIF
                 && new com.tontine.dao.AdhesionDao().findByTontineEtUser(t.getId(), p1.getId()).getStatut() == com.tontine.model.StatutAdhesion.ACTIF
-                && new com.tontine.dao.RenouvellementDao().findByTontineCycleEtUser(t.getId(), 4, p3.getId()).getStatut() == com.tontine.model.StatutRenouvellement.REFUSE);
+                && new com.tontine.dao.RenouvellementDao().findByTontineCycleEtUser(t.getId(), 5, p4.getId()).getStatut() == com.tontine.model.StatutRenouvellement.REFUSE);
         Tirage nouveau = cycles.lancerTirage(k.getId(), t.getId());
         verifier("Nouveau tour : tirage de nouveau possible", nouveau.getBeneficiaireId() > 0);
         int autre = nouveau.getBeneficiaireId() == p1.getId() ? k.getId() : p1.getId();

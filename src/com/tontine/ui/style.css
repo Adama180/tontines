@@ -5,29 +5,30 @@
 
 /* ------------------------------ Jetons de design ------------------------------ */
 .root {
-    /* noir doux (anthracite) : "vert" est le nom historique des jetons, ils portent maintenant le noir */
-    -c-vert-900: #22252b;
-    -c-vert-800: #2d3036;
-    -c-vert-700: #383c44;
-    -c-vert-600: #434852;
-    -c-vert-500: #505663;
-    -c-vert-300: #a9afba;
-    -c-vert-100: #f8efd0;
-    -c-vert-50:  #faf7ec;
-    -c-or:       #d4a017;
-    -c-or-fonce: #b88a12;
-    -c-or-clair: #fdf1cc;
-    -c-teal:     #0f766e;
-    -c-teal-clair: #ccfbf1;
-    -c-texte:    #25282e;
-    -c-gris:     #6b7280;
-    -c-gris-clair: #9ca3af;
-    -c-bordure:  #e5e7eb;
-    -c-fond:     #f6f5f1;
-    -c-rouge:    #b91c1c;
-    -c-rouge-clair: #fee2e2;
+    /* Theme NAAT : marine + or + sable. "vert" est le nom historique des jetons, ils portent maintenant le bleu marine */
+    -c-vert-900: #0f1e38;
+    -c-vert-800: #16294a;
+    -c-vert-700: #1e345c;
+    -c-vert-600: #2c4673;
+    -c-vert-500: #40598a;
+    -c-vert-300: #9fb0c9;
+    -c-vert-100: #efe7d3;
+    -c-vert-50:  #f6f1e4;
+    -c-or:       #e3a73b;
+    -c-or-fonce: #c4881f;
+    -c-or-clair: #f6dfaf;
+    -c-teal:     #1f6f54;
+    -c-teal-clair: #e1efe8;
+    -c-texte:    #16202b;
+    -c-gris:     #4b5768;
+    -c-gris-clair: #8792a3;
+    -c-bordure:  #e3d9be;
+    -c-fond:     #f6f1e4;
+    -c-papier:   #fffdf8;
+    -c-rouge:    #b23a2e;
+    -c-rouge-clair: #f6e3e0;
 
-    -fx-font-family: "Poppins", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     -fx-font-size: 14px;
     -fx-text-fill: -c-texte;
 }
@@ -36,7 +37,7 @@
 
 /* ------------------------------ Fonds ------------------------------ */
 .fond {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -c-vert-900 0%, -c-vert-700 55%, -c-vert-600 100%);
+    -fx-background-color: -c-vert-900;
 }
 .page { -fx-background-color: -c-fond; }
 
@@ -49,7 +50,7 @@
 .scroll-bar:vertical, .scroll-bar:horizontal { -fx-background-color: transparent; -fx-padding: 2; }
 .scroll-bar:vertical { -fx-pref-width: 12; }
 .scroll-bar:horizontal { -fx-pref-height: 12; }
-.scroll-bar .thumb { -fx-background-color: #cfc9b8; -fx-background-radius: 8; -fx-background-insets: 0; }
+.scroll-bar .thumb { -fx-background-color: #d8cca9; -fx-background-radius: 8; -fx-background-insets: 0; }
 .scroll-bar .thumb:hover { -fx-background-color: #b5ad98; }
 .scroll-bar .track { -fx-background-color: transparent; }
 .scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-padding: 0; -fx-pref-height: 0; -fx-pref-width: 0; }
@@ -60,38 +61,39 @@
 .icone-rond .icone { -fx-fill: -c-vert-700; }
 
 /* ------------------------------ Logo ------------------------------ */
-.logo-rond { -fx-fill: linear-gradient(from 0% 0% to 100% 100%, #f1c94a, -c-or); }
-.logo-lettre { -fx-text-fill: -c-vert-900; -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-font-size: 16px; }
-.logo-texte { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 19px; -fx-text-fill: -c-vert-800; }
-.logo-texte-clair { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 19px; -fx-text-fill: white; }
+.logo-rond { -fx-fill: -c-or; }
+.logo-lettre { -fx-text-fill: -c-vert-900; -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-font-size: 16px; }
+.logo-texte { -fx-font-family: "Fraunces SemiBold"; -fx-font-size: 19px; -fx-text-fill: -c-vert-800; }
+.logo-texte-clair { -fx-font-family: "Fraunces SemiBold"; -fx-font-size: 19px; -fx-text-fill: white; }
 
 /* ------------------------------ Barre de navigation ------------------------------ */
 .navbar {
-    -fx-background-color: rgba(255,255,255,0.96);
-    -fx-padding: 12 32 12 32;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.10), 14, 0, 0, 2);
+    -fx-background-color: -c-fond;
+    -fx-border-color: -c-bordure;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 14 32 14 32;
 }
 .compact .navbar { -fx-padding: 10 16 10 16; }
 
 /* ------------------------------ Bandeau d'accueil ------------------------------ */
 .hero {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -c-vert-900 0%, -c-vert-700 60%, -c-vert-600 100%);
+    -fx-background-color: -c-vert-900;
 }
 .hero-contenu { -fx-padding: 56 48 84 48; }
 .compact .hero-contenu { -fx-padding: 32 20 64 20; }
 .hero-titre {
-    -fx-font-family: "Poppins Bold", "Poppins", sans-serif;
+    -fx-font-family: "Fraunces"; -fx-font-weight: bold;
     -fx-text-fill: white;
     -fx-font-size: 42px;
     -fx-line-spacing: 2;
 }
 .hero-titre-accent {
-    -fx-font-family: "Poppins Bold", "Poppins", sans-serif;
-    -fx-text-fill: #f1c94a;
+    -fx-font-family: "Fraunces SemiBold Italic";
+    -fx-text-fill: -c-or;
     -fx-font-size: 42px;
 }
 .compact .hero-titre, .compact .hero-titre-accent { -fx-font-size: 28px; }
-.hero-texte { -fx-text-fill: #d9dce2; -fx-font-size: 16px; -fx-line-spacing: 3; }
+.hero-texte { -fx-text-fill: #c9d3e0; -fx-font-size: 16px; -fx-line-spacing: 3; }
 .compact .hero-texte { -fx-font-size: 14px; }
 .hero-puce {
     -fx-background-color: rgba(255,255,255,0.12);
@@ -101,37 +103,36 @@
     -fx-padding: 5 14 5 14;
 }
 .hero-puce .label { -fx-text-fill: #eceef2; -fx-font-size: 12px; }
-.hero-point .label { -fx-text-fill: #d9dce2; -fx-font-size: 13px; }
-.icone-claire { -fx-fill: #f1c94a; }
+.hero-point .label { -fx-text-fill: #c9d3e0; -fx-font-size: 13px; }
+.icone-claire { -fx-fill: -c-or; }
 
 /* ------------------------------ Boutons ------------------------------ */
 .btn-primaire, .btn-or, .btn-contour, .btn-contour-clair, .btn-icone {
-    -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-font-family: "Inter SemiBold";
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
     -fx-padding: 10 22 10 22;
     -fx-cursor: hand;
 }
 .btn-primaire {
-    -fx-background-color: linear-gradient(to bottom, -c-vert-600, -c-vert-800);
-    -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.30), 8, 0, 0, 3);
+    -fx-background-color: -c-vert-900;
+    -fx-text-fill: #f6f1e4;
 }
-.btn-primaire:hover { -fx-background-color: linear-gradient(to bottom, -c-vert-500, -c-vert-700); -fx-effect: dropshadow(gaussian, rgba(212,160,23,0.45), 12, 0, 0, 4); }
+.btn-primaire:hover { -fx-background-color: -c-vert-700;  }
 .btn-primaire:pressed { -fx-scale-x: 0.98; -fx-scale-y: 0.98; }
 .btn-primaire:disabled { -fx-background-color: #c3c5ca; -fx-effect: none; -fx-opacity: 1; }
 .btn-primaire:disabled .label, .btn-primaire:disabled { -fx-text-fill: white; }
 
 .btn-or {
-    -fx-background-color: linear-gradient(to bottom, #f1c94a, -c-or);
+    -fx-background-color: -c-or;
     -fx-text-fill: -c-vert-900;
-    -fx-effect: dropshadow(gaussian, rgba(184,138,18,0.35), 8, 0, 0, 3);
+    
 }
-.btn-or:hover { -fx-background-color: linear-gradient(to bottom, -c-or, -c-or-fonce); }
+.btn-or:hover { -fx-background-color: -c-or-fonce; }
 .btn-or:pressed { -fx-scale-x: 0.98; -fx-scale-y: 0.98; }
 .btn-or:disabled { -fx-opacity: 0.5; }
 
-.btn-contour { -fx-background-color: transparent; -fx-border-color: -c-vert-600; -fx-text-fill: -c-vert-700; }
+.btn-contour { -fx-background-color: transparent; -fx-border-color: -c-vert-900; -fx-text-fill: -c-vert-900; }
 .btn-contour:hover { -fx-background-color: -c-vert-100; -fx-border-color: -c-or-fonce; }
 .btn-contour:pressed { -fx-scale-x: 0.98; -fx-scale-y: 0.98; }
 .btn-contour:disabled { -fx-opacity: 0.45; }
@@ -142,36 +143,38 @@
 .btn-icone { -fx-background-color: white; -fx-border-color: -c-bordure; -fx-padding: 8 10 8 10; }
 .btn-icone:hover { -fx-background-color: -c-vert-50; }
 
-.hyperlink { -fx-text-fill: -c-or-fonce; -fx-font-family: "Poppins Medium", "Poppins", sans-serif; }
+.hyperlink { -fx-text-fill: -c-or-fonce; -fx-font-family: "Inter Medium"; }
 .hyperlink:hover { -fx-text-fill: -c-or; -fx-underline: true; }
 
 /* ------------------------------ Cartes et textes ------------------------------ */
 .carte {
-    -fx-background-color: white;
-    -fx-background-radius: 16;
+    -fx-background-color: -c-papier;
+    -fx-border-color: -c-bordure;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
     -fx-padding: 28;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.10), 22, 0, 0, 6);
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.08), 14, 0, 0, 3);
 }
 .compact .carte { -fx-padding: 18; }
-.carte-survol:hover { -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.20), 28, 0, 0, 10); }
+.carte-survol:hover { -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.20), 28, 0, 0, 10); }
 
-.titre { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 24px; -fx-text-fill: -c-vert-800; }
+.titre { -fx-font-family: "Fraunces SemiBold"; -fx-font-size: 24px; -fx-text-fill: -c-vert-800; }
 .compact .titre { -fx-font-size: 20px; }
-.section-titre { -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-font-size: 28px; -fx-text-fill: -c-vert-800; }
+.section-titre { -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-font-size: 28px; -fx-text-fill: -c-vert-800; }
 .compact .section-titre { -fx-font-size: 22px; }
 .section-sous { -fx-text-fill: -c-gris; -fx-font-size: 15px; -fx-line-spacing: 2; }
-.carte-titre { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 16px; -fx-text-fill: -c-vert-800; }
-.carte-titre-or { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 16px; -fx-text-fill: -c-or-fonce; }
+.carte-titre { -fx-font-family: "Fraunces SemiBold"; -fx-font-size: 16px; -fx-text-fill: -c-vert-800; }
+.carte-titre-or { -fx-font-family: "Fraunces SemiBold"; -fx-font-size: 16px; -fx-text-fill: -c-or-fonce; }
 .sous-titre { -fx-text-fill: -c-gris; }
-.champ-label { -fx-font-family: "Poppins Medium", "Poppins", sans-serif; -fx-text-fill: #374151; -fx-font-size: 12px; }
+.champ-label { -fx-font-family: "Inter Medium"; -fx-text-fill: #374151; -fx-font-size: 12px; }
 .pied { -fx-text-fill: -c-gris-clair; -fx-font-size: 12px; }
 
 /* ------------------------------ Champs ------------------------------ */
 .text-field, .password-field {
     -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-color: #d1d5db;
-    -fx-border-radius: 10;
+    -fx-background-radius: 4;
+    -fx-border-color: -c-bordure;
+    -fx-border-radius: 4;
     -fx-padding: 10 14 10 14;
     -fx-prompt-text-fill: -c-gris-clair;
 }
@@ -183,42 +186,44 @@
 
 .combo-box, .choice-box {
     -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-color: #d1d5db;
-    -fx-border-radius: 10;
+    -fx-background-radius: 4;
+    -fx-border-color: -c-bordure;
+    -fx-border-radius: 4;
     -fx-padding: 4 6 4 6;
 }
 .combo-box:focused, .choice-box:focused { -fx-border-color: -c-or; }
 .combo-box .arrow, .choice-box .open-button .arrow { -fx-background-color: -c-vert-700; }
-.combo-box-popup .list-view, .context-menu { -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: -c-bordure; }
+.combo-box-popup .list-view, .context-menu { -fx-background-radius: 4; -fx-border-radius: 4; -fx-border-color: -c-bordure; }
 .list-cell:filled:hover, .menu-item:focused { -fx-background-color: -c-vert-50; }
 .list-cell:filled:selected { -fx-background-color: -c-vert-100; -fx-text-fill: -c-vert-800; }
 
 .message-erreur {
     -fx-text-fill: -c-rouge;
     -fx-background-color: -c-rouge-clair;
-    -fx-background-radius: 10;
-    -fx-border-color: #f5b5b5;
-    -fx-border-radius: 10;
+    -fx-background-radius: 4;
+    -fx-border-color: #e6b3ac;
+    -fx-border-radius: 4;
     -fx-padding: 10 14 10 14;
 }
 .message-succes {
-    -fx-text-fill: #166534;
-    -fx-background-color: #dcfce7;
-    -fx-background-radius: 10;
-    -fx-border-color: #a8e0bb;
-    -fx-border-radius: 10;
+    -fx-text-fill: #164c39;
+    -fx-background-color: #e1efe8;
+    -fx-background-radius: 4;
+    -fx-border-color: #a9d2bf;
+    -fx-border-radius: 4;
     -fx-padding: 10 14 10 14;
 }
 
 /* ------------------------------ Espace connecte : barre laterale ------------------------------ */
-.sidebar { -fx-background-color: linear-gradient(to bottom, -c-vert-700, -c-vert-900); -fx-padding: 22 14 22 14; }
-.sidebar-nom { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-text-fill: white; -fx-font-size: 14px; }
+.sidebar { -fx-background-color: -c-vert-900; -fx-padding: 22 14 22 14; }
+.sidebar-nom { -fx-font-family: "Inter SemiBold"; -fx-text-fill: white; -fx-font-size: 14px; }
 .sidebar-nom .label, .sidebar-nom { -fx-text-fill: white; }
-.sidebar-info { -fx-text-fill: #aab0bb; -fx-font-size: 11px; }
+.sidebar-info { -fx-text-fill: -c-or; -fx-font-size: 11px; }
 .sidebar-profil {
-    -fx-background-color: rgba(255,255,255,0.07);
-    -fx-background-radius: 14;
+    -fx-background-color: -c-vert-800;
+    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
     -fx-padding: 12;
 }
 .badge {
@@ -227,32 +232,29 @@
     -fx-background-radius: 20;
     -fx-padding: 2 10 2 10;
     -fx-font-size: 11px;
-    -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif;
+    -fx-font-family: "Inter SemiBold";
 }
 .menu-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #c9ced6;
+    -fx-text-fill: #c9d3e0;
     -fx-alignment: CENTER_LEFT;
     -fx-graphic-text-gap: 12;
     -fx-padding: 8 14 8 14;
-    -fx-background-radius: 10;
+    -fx-background-radius: 4;
     -fx-cursor: hand;
 }
-.menu-btn .icone { -fx-fill: #aab0bb; }
-.menu-btn:hover { -fx-background-color: rgba(255,255,255,0.10); -fx-text-fill: white; }
+.menu-btn .icone { -fx-fill: #9fb0c9; }
+.menu-btn:hover { -fx-background-color: -c-vert-800; -fx-text-fill: white; }
 .menu-btn:hover .icone { -fx-fill: white; }
 .menu-btn-actif, .menu-btn-actif:hover {
-    -fx-background-color: rgba(212,160,23,0.20);
-    -fx-border-color: transparent transparent transparent -c-or;
-    -fx-border-width: 0 0 0 3;
-    -fx-border-radius: 10;
-    -fx-text-fill: #f1c94a;
-    -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif;
+    -fx-background-color: -c-or;
+    -fx-text-fill: -c-vert-900;
+    -fx-font-family: "Inter"; -fx-font-weight: bold;
 }
-.menu-btn-actif .icone, .menu-btn-actif:hover .icone { -fx-fill: #f1c94a; }
+.menu-btn-actif .icone, .menu-btn-actif:hover .icone { -fx-fill: -c-vert-900; }
 
 .entete-page {
-    -fx-background-color: white;
+    -fx-background-color: -c-papier;
     -fx-padding: 14 30 14 30;
     -fx-border-color: -c-bordure;
     -fx-border-width: 0 0 1 0;
@@ -260,25 +262,25 @@
 .compact .entete-page { -fx-padding: 10 14 10 14; }
 .lien-notif { -fx-text-fill: -c-gris; -fx-font-size: 13px; }
 .lien-notif .icone { -fx-fill: -c-gris; }
-.lien-notif-actif { -fx-text-fill: -c-or-fonce; -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; }
+.lien-notif-actif { -fx-text-fill: -c-or-fonce; -fx-font-family: "Inter SemiBold"; }
 .lien-notif-actif .icone { -fx-fill: -c-or; }
 
 /* ------------------------------ Avatar ------------------------------ */
-.avatar-lettre { -fx-text-fill: white; -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 13px; }
+.avatar-lettre { -fx-text-fill: white; -fx-font-family: "Inter SemiBold"; -fx-font-size: 13px; }
 
 /* ------------------------------ Bandeau de bienvenue / etats vides ------------------------------ */
 .banniere {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -c-vert-800 0%, -c-vert-600 100%);
-    -fx-background-radius: 18;
+    -fx-background-color: -c-vert-900;
+    -fx-background-radius: 8;
     -fx-padding: 26 30 26 30;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.25), 18, 0, 0, 6);
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.25), 18, 0, 0, 6);
 }
-.banniere-titre { -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-text-fill: white; -fx-font-size: 22px; }
-.banniere-texte { -fx-text-fill: #d9dce2; }
+.banniere-titre { -fx-font-family: "Fraunces SemiBold"; -fx-text-fill: white; -fx-font-size: 22px; }
+.banniere-texte { -fx-text-fill: #c9d3e0; }
 .compact .banniere { -fx-padding: 18; }
 .compact .banniere-titre { -fx-font-size: 18px; }
 
-.etat-vide { -fx-background-color: white; -fx-background-radius: 16; -fx-padding: 34; -fx-border-color: -c-bordure; -fx-border-radius: 16; -fx-border-style: dashed; }
+.etat-vide { -fx-background-color: -c-papier; -fx-background-radius: 8; -fx-padding: 34; -fx-border-color: -c-bordure; -fx-border-radius: 8; -fx-border-style: dashed; }
 .icone-rond { -fx-background-color: #ecedf0; -fx-background-radius: 40; -fx-padding: 14; }
 .icone-rond-or { -fx-background-color: -c-or-clair; -fx-background-radius: 40; -fx-padding: 14; }
 .icone-rond-teal { -fx-background-color: -c-teal-clair; -fx-background-radius: 40; -fx-padding: 14; }
@@ -287,12 +289,12 @@
 
 /* ------------------------------ Listes, badges, statistiques ------------------------------ */
 .ligne-liste {
-    -fx-background-color: white;
-    -fx-background-radius: 14;
+    -fx-background-color: -c-papier;
+    -fx-background-radius: 8;
     -fx-padding: 16 20 16 20;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.07), 10, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.07), 10, 0, 0, 2);
 }
-.ligne-liste:hover { -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.16), 16, 0, 0, 4); }
+.ligne-liste:hover { -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.16), 16, 0, 0, 4); }
 .compact .ligne-liste { -fx-padding: 12 14 12 14; }
 
 .badge-type {
@@ -301,51 +303,51 @@
     -fx-background-radius: 20;
     -fx-padding: 3 12 3 12;
     -fx-font-size: 12px;
-    -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif;
+    -fx-font-family: "Inter SemiBold";
 }
 .badge-statut {
     -fx-background-radius: 20;
     -fx-padding: 4 14 4 14;
     -fx-font-size: 12px;
-    -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif;
+    -fx-font-family: "Inter SemiBold";
 }
-.statut-attente   { -fx-background-color: #fef3c7; -fx-text-fill: #92400e; }
-.statut-acceptee  { -fx-background-color: #dcfce7; -fx-text-fill: #166534; }
-.statut-refusee   { -fx-background-color: #fee2e2; -fx-text-fill: #b91c1c; }
-.statut-rembourse { -fx-background-color: #dbeafe; -fx-text-fill: #1e40af; }
+.statut-attente   { -fx-background-color: #f6dfaf; -fx-text-fill: #6b4e12; }
+.statut-acceptee  { -fx-background-color: #e1efe8; -fx-text-fill: #164c39; }
+.statut-refusee   { -fx-background-color: #f6e3e0; -fx-text-fill: #7a2a21; }
+.statut-rembourse { -fx-background-color: #e4ecf3; -fx-text-fill: #1d3f5f; }
 
 .stat-card {
-    -fx-background-color: white;
-    -fx-background-radius: 14;
+    -fx-background-color: -c-papier;
+    -fx-background-radius: 8;
     -fx-padding: 18 20 18 20;
     -fx-border-color: -c-bordure -c-bordure -c-bordure -c-vert-600;
     -fx-border-width: 1 1 1 4;
-    -fx-border-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.06), 8, 0, 0, 2);
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.06), 8, 0, 0, 2);
 }
 .stat-card-or { -fx-border-color: -c-bordure -c-bordure -c-bordure -c-or; }
 .stat-card-teal { -fx-border-color: -c-bordure -c-bordure -c-bordure -c-teal; }
-.stat-valeur { -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-font-size: 22px; -fx-text-fill: -c-or-fonce; }
+.stat-valeur { -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-font-size: 22px; -fx-text-fill: -c-or-fonce; }
 .stat-libelle { -fx-font-size: 12px; -fx-text-fill: -c-gris; }
 
-.notif-nonlue { -fx-border-color: -c-or; -fx-border-width: 0 0 0 4; -fx-border-radius: 14; }
+.notif-nonlue { -fx-border-color: -c-or; -fx-border-width: 0 0 0 4; -fx-border-radius: 8; }
 .notif-lue { -fx-opacity: 0.85; }
-.notif-texte { -fx-font-family: "Poppins Medium", "Poppins", sans-serif; -fx-text-fill: -c-texte; }
+.notif-texte { -fx-font-family: "Inter Medium"; -fx-text-fill: -c-texte; }
 .notif-texte-lue { -fx-text-fill: #4b5563; }
 
 /* ------------------------------ Puces (choix) et onglets ------------------------------ */
 .puce {
     -fx-background-color: white;
-    -fx-border-color: #d1d5db;
+    -fx-border-color: -c-bordure;
     -fx-border-radius: 20;
     -fx-background-radius: 20;
     -fx-padding: 7 18 7 18;
     -fx-text-fill: #374151;
-    -fx-font-family: "Poppins Medium", "Poppins", sans-serif;
+    -fx-font-family: "Inter Medium";
     -fx-cursor: hand;
 }
 .puce:hover { -fx-border-color: -c-or; }
-.puce:selected { -fx-background-color: -c-vert-700; -fx-border-color: -c-or; -fx-text-fill: #f1c94a; }
+.puce:selected { -fx-background-color: -c-vert-700; -fx-border-color: -c-or; -fx-text-fill: -c-or; }
 
 .tab-pane > .tab-header-area > .tab-header-background { -fx-background-color: transparent; }
 .tab-pane > .tab-header-area > .headers-region > .tab {
@@ -361,80 +363,80 @@
     -fx-border-color: transparent transparent -c-or transparent;
     -fx-border-width: 0 0 3 0;
 }
-.tab .tab-label { -fx-text-fill: -c-gris; -fx-font-family: "Poppins Medium", "Poppins", sans-serif; -fx-font-size: 14px; }
-.tab:selected .tab-label { -fx-text-fill: -c-vert-800; -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; }
+.tab .tab-label { -fx-text-fill: -c-gris; -fx-font-family: "Inter Medium"; -fx-font-size: 14px; }
+.tab:selected .tab-label { -fx-text-fill: -c-vert-800; -fx-font-family: "Inter SemiBold"; }
 .tab-pane > .tab-content-area { -fx-padding: 16 0 0 0; }
 .tab-pane:focused > .tab-header-area > .headers-region > .tab:selected .focus-indicator { -fx-border-color: transparent; }
 .tab-pane > .tab-header-area > .tab-header-background { -fx-opacity: 0; }
 
 /* ------------------------------ Tableaux ------------------------------ */
 .table-view {
-    -fx-background-color: white;
-    -fx-background-radius: 14;
+    -fx-background-color: -c-papier;
+    -fx-background-radius: 8;
     -fx-border-color: -c-bordure;
-    -fx-border-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.06), 8, 0, 0, 2);
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.06), 8, 0, 0, 2);
 }
-.table-view .column-header-background { -fx-background-color: -c-fond; -fx-background-radius: 14 14 0 0; }
+.table-view .column-header-background { -fx-background-color: -c-fond; -fx-background-radius: 8 8 0 0; }
 .table-view .column-header, .table-view .filler { -fx-background-color: transparent; -fx-size: 42px; -fx-border-color: transparent; }
-.table-view .column-header .label { -fx-text-fill: #374151; -fx-font-family: "Poppins SemiBold", "Poppins", sans-serif; -fx-font-size: 13px; }
+.table-view .column-header .label { -fx-text-fill: #374151; -fx-font-family: "Inter SemiBold"; -fx-font-size: 13px; }
 .table-row-cell { -fx-cell-size: 40px; -fx-table-cell-border-color: transparent; }
-.table-row-cell:odd { -fx-background-color: #fbfaf7; }
+.table-row-cell:odd { -fx-background-color: #faf6ea; }
 .table-row-cell:hover { -fx-background-color: -c-vert-50; }
 .table-row-cell:selected { -fx-background-color: -c-vert-100; }
 .table-row-cell:selected .table-cell { -fx-text-fill: -c-vert-800; }
 
 /* ------------------------------ Page d'accueil : sections ------------------------------ */
 .bande-stats {
-    -fx-background-color: white;
-    -fx-background-radius: 18;
+    -fx-background-color: -c-papier;
+    -fx-background-radius: 8;
     -fx-padding: 22 30 22 30;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.18), 26, 0, 0, 8);
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.18), 26, 0, 0, 8);
 }
-.bande-stats-valeur { -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-font-size: 26px; -fx-text-fill: -c-or-fonce; }
+.bande-stats-valeur { -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-font-size: 26px; -fx-text-fill: -c-or-fonce; }
 .bande-stats-libelle { -fx-text-fill: -c-gris; -fx-font-size: 13px; }
 
 .etape-num {
-    -fx-background-color: linear-gradient(to bottom, #f1c94a, -c-or);
+    -fx-background-color: -c-or;
     -fx-background-radius: 30;
     -fx-min-width: 34; -fx-min-height: 34; -fx-pref-width: 34; -fx-pref-height: 34;
     -fx-alignment: CENTER;
 }
-.etape-num-texte { -fx-text-fill: -c-vert-900; -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-font-size: 15px; }
+.etape-num-texte { -fx-text-fill: -c-vert-900; -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-font-size: 15px; }
 
-.type-fonds  { -fx-border-color: -c-vert-700 transparent transparent transparent; -fx-border-width: 5 0 0 0; -fx-border-radius: 16; }
-.type-tour   { -fx-border-color: -c-or transparent transparent transparent; -fx-border-width: 5 0 0 0; -fx-border-radius: 16; }
-.type-tirage { -fx-border-color: -c-teal transparent transparent transparent; -fx-border-width: 5 0 0 0; -fx-border-radius: 16; }
+.type-fonds  { -fx-border-color: -c-vert-700 transparent transparent transparent; -fx-border-width: 5 0 0 0; -fx-border-radius: 8; }
+.type-tour   { -fx-border-color: -c-or transparent transparent transparent; -fx-border-width: 5 0 0 0; -fx-border-radius: 8; }
+.type-tirage { -fx-border-color: -c-teal transparent transparent transparent; -fx-border-width: 5 0 0 0; -fx-border-radius: 8; }
 
 .cta-bande {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -c-vert-800 0%, -c-vert-600 100%);
-    -fx-background-radius: 22;
+    -fx-background-color: -c-vert-900;
+    -fx-background-radius: 8;
     -fx-padding: 40 44 40 44;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.30), 24, 0, 0, 8);
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.30), 24, 0, 0, 8);
 }
 .compact .cta-bande { -fx-padding: 26 20 26 20; }
-.cta-titre { -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-text-fill: white; -fx-font-size: 26px; }
+.cta-titre { -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 26px; }
 .compact .cta-titre { -fx-font-size: 20px; }
-.cta-texte { -fx-text-fill: #d9dce2; }
+.cta-texte { -fx-text-fill: #c9d3e0; }
 
 .pied-page { -fx-background-color: -c-vert-900; -fx-padding: 26 40 26 40; }
-.pied-page .label { -fx-text-fill: #aab0bb; -fx-font-size: 12px; }
+.pied-page .label { -fx-text-fill: #9fb0c9; -fx-font-size: 12px; }
 .compact .pied-page { -fx-padding: 20 16 20 16; }
 
 /* ------------------------------ Connexion / inscription ------------------------------ */
 .panneau-marque {
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -c-vert-900 0%, -c-vert-700 60%, -c-vert-600 100%);
+    -fx-background-color: -c-vert-900;
     -fx-padding: 44 40 44 40;
 }
-.marque-titre { -fx-font-family: "Poppins Bold", "Poppins", sans-serif; -fx-text-fill: white; -fx-font-size: 30px; -fx-line-spacing: 2; }
-.marque-texte { -fx-text-fill: #d9dce2; -fx-font-size: 14px; -fx-line-spacing: 3; }
+.marque-titre { -fx-font-family: "Fraunces"; -fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 30px; -fx-line-spacing: 2; }
+.marque-texte { -fx-text-fill: #c9d3e0; -fx-font-size: 14px; -fx-line-spacing: 3; }
 .marque-point .label { -fx-text-fill: #eceef2; }
 .auth-fond { -fx-background-color: -c-fond; }
 .auth-carte {
-    -fx-background-color: white;
-    -fx-background-radius: 20;
+    -fx-background-color: -c-papier;
+    -fx-background-radius: 8;
     -fx-padding: 34;
-    -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.14), 26, 0, 0, 8);
+    -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.14), 26, 0, 0, 8);
 }
 .compact .auth-carte { -fx-padding: 22; }
 
@@ -442,11 +444,11 @@
 .vignette-piece {
     -fx-background-color: white;
     -fx-border-color: -c-bordure;
-    -fx-border-radius: 10;
-    -fx-background-radius: 10;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
     -fx-padding: 1;
 }
-.vignette-piece:hover { -fx-effect: dropshadow(gaussian, rgba(20,22,26,0.30), 10, 0, 0, 2); }
+.vignette-piece:hover { -fx-effect: dropshadow(gaussian, rgba(15,30,56,0.30), 10, 0, 0, 2); }
 .vignette-texte { -fx-text-fill: #6f737b; -fx-font-size: 11px; -fx-text-alignment: center; }
 .visionneuse-fond { -fx-background: #ecebe6; -fx-background-color: #ecebe6; }
 .visionneuse-info { -fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2d3036; }

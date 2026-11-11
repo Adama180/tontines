@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table tirage : résultat d'un tirage au sort (non modifiable sans audit). */
+/** Table tirage : r\u00e9sultat d'un tirage au sort (non modifiable sans audit). */
 public class Tirage {
     private int id;
     private int tontineId;

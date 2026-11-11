@@ -42,7 +42,7 @@ public class CagnottePane extends VBox {
 
         String explication;
         if (t.isFondsCommun()) {
-            explication = "En fin de " + Libelles.cycle(t) + ", vous recevez votre cotisation cumul\u00e9e plus une part \u00e9gale des int\u00e9r\u00eats et des p\u00e9nalit\u00e9s collect\u00e9s.";
+            explication = "En fin de " + Libelles.cycle(t) + ", vous recevez votre cotisation cumul\u00e9e plus une part \u00e9gale des int\u00e9r\u00eats collect\u00e9s.";
         } else if (t.isTourDeRole()) {
             explication = "Vous recevez la cagnotte du " + Libelles.cycle(t) + " quand c'est votre tour (voir l'onglet \u00ab Tour de r\u00f4le \u00bb).";
         } else {

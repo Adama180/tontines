@@ -101,13 +101,14 @@ public class AccueilView extends BorderPane {
             }
         };
         decor.setMouseTransparent(true);
-        Circle c1 = new Circle(230, Color.web("#ffffff", 0.05));
+        Circle c1 = new Circle(210, Color.web("#e3a73b", 0.22));
         c1.centerXProperty().bind(decor.widthProperty().multiply(0.95));
         c1.setCenterY(40);
-        Circle c2 = new Circle(150, Color.web("#d4a017", 0.14));
+        Circle c2 = new Circle(170, Color.TRANSPARENT);
+        c2.setStroke(Color.web("#ffffff", 0.14));
         c2.setCenterX(40);
         c2.centerYProperty().bind(decor.heightProperty().multiply(0.95));
-        Circle c3 = new Circle(60, Color.web("#ffffff", 0.06));
+        Circle c3 = new Circle(40, Color.web("#ffffff", 0.04));
         c3.centerXProperty().bind(decor.widthProperty().multiply(0.55));
         c3.centerYProperty().bind(decor.heightProperty().multiply(0.12));
         decor.getChildren().addAll(c1, c2, c3);

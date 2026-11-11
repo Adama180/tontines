@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table adhesion : la participation d'un utilisateur à UNE tontine, avec son rôle. */
+/** Table adhesion : la participation d'un utilisateur \u00e0 UNE tontine, avec son r\u00f4le. */
 public class Adhesion {
     private int id;
     private int tontineId;

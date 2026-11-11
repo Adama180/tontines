@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table utilisateur : l'identité d'une personne, enregistrée une seule fois. */
+/** Table utilisateur : l'identit\u00e9 d'une personne, enregistr\u00e9e une seule fois. */
 public class Utilisateur {
     private int id;
     private String nom;

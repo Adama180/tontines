@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table transaction : cotisation, prêt, remboursement, distribution ou pénalité. */
+/** Table transaction : cotisation, pr\u00eat, remboursement, distribution ou p\u00e9nalit\u00e9. */
 public class Transaction {
     private int id;
     private int tontineId;

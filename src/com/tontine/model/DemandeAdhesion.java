@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table demande_adhesion : demande pour rejoindre une tontine (validée par le gérant). */
+/** Table demande_adhesion : demande pour rejoindre une tontine (valid\u00e9e par le g\u00e9rant). */
 public class DemandeAdhesion {
     private int id;
     private int tontineId;

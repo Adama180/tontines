@@ -4,7 +4,7 @@ import java.io.InputStream;
 
 import javafx.scene.text.Font;
 
-/** Charge la police Poppins (licence SIL OFL, voir polices/OFL.txt). Sans elle, le systeme utilise sa police par defaut. */
+/** Charge les polices Fraunces (titres) et Inter (texte) (licence SIL OFL, voir polices/OFL.txt). Sans elle, le systeme utilise sa police par defaut. */
 public final class Polices {
 
     private static boolean chargees;
@@ -17,7 +17,8 @@ public final class Polices {
             return;
         }
         chargees = true;
-        for (String nom : new String[] { "Poppins-Regular", "Poppins-Medium", "Poppins-SemiBold", "Poppins-Bold" }) {
+        for (String nom : new String[] { "Fraunces-Regular", "Fraunces-SemiBold", "Fraunces-Bold", "Fraunces-SemiBoldItalic",
+                "Inter-Regular", "Inter-Medium", "Inter-SemiBold", "Inter-Bold" }) {
             try (InputStream in = Polices.class.getResourceAsStream("polices/" + nom + ".ttf")) {
                 if (in == null || Font.loadFont(in, 14) == null) {
                     System.err.println("Police " + nom + " introuvable : la police par defaut du systeme sera utilisee.");

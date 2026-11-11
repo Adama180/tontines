@@ -104,7 +104,7 @@ public class ExplorerPane extends VBox {
         nom.getStyleClass().add("carte-titre");
         nom.setWrapText(true);
         int membres = consultation.nombreMembres(t.getId());
-        Label cotisation = Composants.sousTitre("Cotisation : " + Format.montant(t.getMontantCotisation())
+        Label cotisation = Composants.sousTitre("Cotisation : " + Libelles.cotisation(t)
                 + " (" + Libelles.frequence(t.getFrequence()) + ")");
         Label places = Composants.sousTitre("Membres : " + membres + " / " + t.getNbMembreMax()
                 + (membres >= t.getNbMembreMax() ? "  - complet" : ""));

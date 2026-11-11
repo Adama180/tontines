@@ -46,16 +46,36 @@ public class MainApp extends Application {
                 System.err.println("Initialisation du compte administrateur impossible : " + e.getMessage());
             }
             Nav.aller(new AccueilView());
+            demarrerRetraitAutomatique();
         }
         stage.show();
+    }
+
+    /**
+     * Renouvellement des tontines : toutes les minutes, les membres qui n'ont pas repondu a l'alerte avant la date
+     * limite sont retires automatiquement (sans action du gerant).
+     */
+    private void demarrerRetraitAutomatique() {
+        Runnable tache = () -> {
+            try {
+                new com.tontine.service.RenouvellementService().appliquerEcheances();
+            } catch (RuntimeException e) {
+                System.err.println("Retrait automatique impossible pour l'instant : " + e.getMessage());
+            }
+        };
+        tache.run();
+        javafx.animation.Timeline minuteur = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.minutes(1), e -> tache.run()));
+        minuteur.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        minuteur.play();
     }
 
     /** Icone de la fenetre : la pastille doree du logo, dessinee a l'execution (aucun fichier image). */
     private Image icone() {
         try {
-            Circle rond = new Circle(30, Color.web("#d4a017"));
+            Circle rond = new Circle(30, Color.web("#e3a73b"));
             Label n = new Label("N");
-            n.setStyle("-fx-font-family: \"Poppins Bold\", \"Poppins\", sans-serif; -fx-font-size: 30px; -fx-text-fill: #22252b;");
+            n.setStyle("-fx-font-family: \"Fraunces SemiBold\", sans-serif; -fx-font-size: 30px; -fx-text-fill: #0f1e38;");
             StackPane p = new StackPane(rond, n);
             p.setPrefSize(64, 64);
             p.setMinSize(64, 64);

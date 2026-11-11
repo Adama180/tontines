@@ -119,7 +119,7 @@ public final class Composants {
         return v;
     }
 
-    private static final String[] COULEURS_AVATAR = { "#2d3036", "#b88a12", "#0f766e", "#6d28d9", "#be185d", "#1d4ed8" };
+    private static final String[] COULEURS_AVATAR = { "#16294a", "#c4881f", "#1f6f54", "#2c5c8a", "#b23a2e", "#1e345c" };
 
     /** Pastille ronde avec les initiales (couleur stable pour un meme nom). */
     public static Node avatar(String nomComplet, double taille) {
@@ -139,9 +139,9 @@ public final class Composants {
     public static Node iconeRonde(String icone, String variante) {
         Node ic = Icones.icone(icone, 22);
         if ("or".equals(variante)) {
-            ((Group) ic).getChildren().forEach(n -> n.getStyleClass().add("icone-or"));
+            ((Group) ic).getChildren().stream().filter(n -> n instanceof javafx.scene.shape.SVGPath).forEach(n -> n.getStyleClass().add("icone-or"));
         } else if ("teal".equals(variante)) {
-            ((Group) ic).getChildren().forEach(n -> n.getStyleClass().add("icone-teal"));
+            ((Group) ic).getChildren().stream().filter(n -> n instanceof javafx.scene.shape.SVGPath).forEach(n -> n.getStyleClass().add("icone-teal"));
         }
         StackPane s = new StackPane(ic);
         s.getStyleClass().add("or".equals(variante) ? "icone-rond-or" : "teal".equals(variante) ? "icone-rond-teal" : "icone-rond");

@@ -23,8 +23,8 @@ public final class ConnexionBD {
         try {
             return DriverManager.getConnection(URL, UTILISATEUR, MOT_DE_PASSE);
         } catch (SQLException e) {
-            throw new DaoException("Impossible de se connecter a MySQL. Verifiez que MySQL est demarre "
-                    + "dans XAMPP et que la base 'tontine' existe. Detail : " + e.getMessage(), e);
+            throw new DaoException("Impossible de se connecter \u00e0 MySQL. V\u00e9rifiez que MySQL est d\u00e9marr\u00e9 "
+                    + "dans XAMPP et que la base 'tontine' existe. D\u00e9tail : " + e.getMessage(), e);
         }
     }
 

@@ -1,25 +1,64 @@
 package com.tontine.model;
 
-public class DemandeDepart {
+import java.time.LocalDateTime;
 
+/** Table demande_depart : demande d'un membre de quitter une tontine terminee (avant sa relance). */
+public class DemandeDepart {
     private int id;
     private int tontineId;
     private int userId;
     private String motif;
-    private StatutDemande statut = StatutDemande.EN_ATTENTE;
+    private LocalDateTime dateDemande;
+    private StatutDemande statut;
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public DemandeDepart() {
+    }
 
-    public int getTontineId() { return tontineId; }
-    public void setTontineId(int tontineId) { this.tontineId = tontineId; }
+    public int getId() {
+        return id;
+    }
 
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public String getMotif() { return motif; }
-    public void setMotif(String motif) { this.motif = motif; }
+    public int getTontineId() {
+        return tontineId;
+    }
 
-    public StatutDemande getStatut() { return statut; }
-    public void setStatut(StatutDemande statut) { this.statut = statut; }
+    public void setTontineId(int tontineId) {
+        this.tontineId = tontineId;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public String getMotif() {
+        return motif;
+    }
+
+    public void setMotif(String motif) {
+        this.motif = motif;
+    }
+
+    public LocalDateTime getDateDemande() {
+        return dateDemande;
+    }
+
+    public void setDateDemande(LocalDateTime dateDemande) {
+        this.dateDemande = dateDemande;
+    }
+
+    public StatutDemande getStatut() {
+        return statut;
+    }
+
+    public void setStatut(StatutDemande statut) {
+        this.statut = statut;
+    }
 }

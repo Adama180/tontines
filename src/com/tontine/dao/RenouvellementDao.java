@@ -18,6 +18,7 @@ public class RenouvellementDao extends BaseDao {
         o.setStatut(enumOf(StatutRenouvellement.class, rs.getString("statut")));
         o.setDateEnvoi(rs.getObject("date_envoi", LocalDateTime.class));
         o.setDateReponse(rs.getObject("date_reponse", LocalDateTime.class));
+        o.setDateLimite(rs.getObject("date_limite", LocalDateTime.class));
         return o;
     }
 
@@ -29,8 +30,8 @@ public class RenouvellementDao extends BaseDao {
             o.setStatut(StatutRenouvellement.EN_ATTENTE);
         }
         int id = insertReturnId(
-                "INSERT INTO `renouvellement` (`tontine_id`,`user_id`,`cycle_numero`,`statut`,`date_envoi`) VALUES (?,?,?,?,?)",
-                o.getTontineId(), o.getUserId(), o.getCycleNumero(), o.getStatut(), o.getDateEnvoi());
+                "INSERT INTO `renouvellement` (`tontine_id`,`user_id`,`cycle_numero`,`statut`,`date_envoi`,`date_limite`) VALUES (?,?,?,?,?,?)",
+                o.getTontineId(), o.getUserId(), o.getCycleNumero(), o.getStatut(), o.getDateEnvoi(), o.getDateLimite());
         o.setId(id);
         return id;
     }
@@ -53,5 +54,11 @@ public class RenouvellementDao extends BaseDao {
     public boolean repondre(int id, StatutRenouvellement statut) {
         return executeUpdate("UPDATE `renouvellement` SET `statut`=?, `date_reponse`=? WHERE `id`=?",
                 statut, LocalDateTime.now(), id) > 0;
+    }
+
+    /** Alertes sans reponse dont la date limite est depassee. */
+    public List<Renouvellement> findExpirees(LocalDateTime maintenant) {
+        return queryList("SELECT * FROM `renouvellement` WHERE `statut`='EN_ATTENTE' AND `date_limite` IS NOT NULL "
+                + "AND `date_limite` < ? ORDER BY `id`", this::map, maintenant);
     }
 }

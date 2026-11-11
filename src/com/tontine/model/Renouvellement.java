@@ -12,6 +12,8 @@ public class Renouvellement {
     private StatutRenouvellement statut;
     private LocalDateTime dateEnvoi;
     private LocalDateTime dateReponse;
+    /** Date limite de reponse ; apres elle, sans reponse, le membre est retire automatiquement (null = pas de limite). */
+    private LocalDateTime dateLimite;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -27,4 +29,6 @@ public class Renouvellement {
     public void setDateEnvoi(LocalDateTime dateEnvoi) { this.dateEnvoi = dateEnvoi; }
     public LocalDateTime getDateReponse() { return dateReponse; }
     public void setDateReponse(LocalDateTime dateReponse) { this.dateReponse = dateReponse; }
+    public LocalDateTime getDateLimite() { return dateLimite; }
+    public void setDateLimite(LocalDateTime dateLimite) { this.dateLimite = dateLimite; }
 }

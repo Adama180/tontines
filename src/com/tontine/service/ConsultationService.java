@@ -41,6 +41,9 @@ public class ConsultationService {
         r.add("Type : " + Libelles.type(t.getType()));
         r.add("Cotisation : " + Libelles.cotisation(t) + " (" + Libelles.frequence(t.getFrequence()) + ")");
         r.add("Date et heure de cotisation : " + Libelles.horaire(t));
+        r.add(t.getPenaliteRetard() > 0
+                ? "P\u00e9nalit\u00e9 de retard : " + Format.montant(t.getPenaliteRetard()) + " (retir\u00e9e du solde si la cotisation arrive avant 23 h 59 le jour limite ; au-del\u00e0, le membre est marqu\u00e9 absent, sans p\u00e9nalit\u00e9)"
+                : "P\u00e9nalit\u00e9 de retard : aucune (le membre qui ne cotise pas est marqu\u00e9 absent)");
         r.add("Membres : " + nombreMembres(t.getId()) + " / " + t.getNbMembreMax());
         if (t.isFondsCommun()) {
             r.add("Taux d'int\u00e9r\u00eat des pr\u00eats : " + (t.getTauxInteret() == null ? "non d\u00e9fini" : t.getTauxInteret() + " %"));

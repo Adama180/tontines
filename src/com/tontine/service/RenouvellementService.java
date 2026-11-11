@@ -24,8 +24,24 @@ public class RenouvellementService {
     private final RenouvellementDao dao = new RenouvellementDao();
     private final AdhesionService adhesions = new AdhesionService();
 
+    /** Delai de reponse propose par defaut (en heures). */
+    public static final int DELAI_DEFAUT_HEURES = 48;
+    public static final int DELAI_MAX_HEURES = 24 * 30;
+
     /** Le gerant lance l'alerte de renouvellement a tous les autres membres actifs (une seule fois par cycle clos). */
     public int lancerAlerte(int gerantId, int tontineId) {
+        return lancerAlerte(gerantId, tontineId, DELAI_DEFAUT_HEURES);
+    }
+
+    /**
+     * Le gerant lance l'alerte avec un delai de reponse en heures (1 a 720). Passe ce delai, les membres qui n'ont pas
+     * repondu sont retires automatiquement, sans action du gerant.
+     */
+    public int lancerAlerte(int gerantId, int tontineId, int delaiHeures) {
+        appliquerEcheances();
+        Controles.exiger(delaiHeures >= 1 && delaiHeures <= DELAI_MAX_HEURES,
+                "Le d\u00e9lai de r\u00e9ponse doit \u00eatre compris entre 1 et " + DELAI_MAX_HEURES + " heures.");
+        java.time.LocalDateTime limite = java.time.LocalDateTime.now().plusHours(delaiHeures);
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
         Controles.exiger(adhesions.estTerminee(t),
@@ -42,10 +58,11 @@ public class RenouvellementService {
             r.setTontineId(tontineId);
             r.setUserId(a.getUserId());
             r.setCycleNumero(numero);
+            r.setDateLimite(limite);
             dao.insert(r);
-            NotificationService.notifier(a.getUserId(), "La tontine " + t.getNom() + " est termin\u00e9e. Souhaitez-vous continuer "
-                    + "au prochain " + Libelles.cycle(t) + " ? R\u00e9pondez dans l'onglet Renouvellement : si vous refusez, "
-                    + "vous serez retir\u00e9(e) de la tontine. Sans r\u00e9ponse de votre part, vous serez consid\u00e9r\u00e9(e) comme ne souhaitant plus participer.", "RENOUVELLEMENT");
+            NotificationService.notifier(a.getUserId(), "Tontine " + t.getNom() + " termin\u00e9e : continuez-vous au prochain "
+                    + Libelles.cycle(t) + " ? R\u00e9pondez avant le " + Format.dateHeure(limite) + " (onglet Renouvellement). "
+                    + "Refus ou absence de r\u00e9ponse : vous serez retir\u00e9(e).", "RENOUVELLEMENT");
             envoyees++;
         }
         Controles.exiger(envoyees > 0, "Il n'y a aucun autre membre actif \u00e0 qui envoyer l'alerte.");
@@ -58,6 +75,7 @@ public class RenouvellementService {
      * (impossible tant qu'il a un solde ou un pret en cours : le gerant doit d'abord regler sa situation).
      */
     public Renouvellement repondre(int userId, int tontineId, boolean valider) {
+        appliquerEcheances();
         Tontine t = Controles.tontine(tontineId);
         Adhesion a = Controles.adhesionActive(tontineId, userId);
         Controles.exiger(adhesions.estTerminee(t), "Aucune alerte de renouvellement n'est en cours pour cette tontine.");
@@ -82,6 +100,7 @@ public class RenouvellementService {
 
     /** Alertes du dernier cycle clos (vue du gerant : qui a repondu quoi). */
     public List<Renouvellement> alertes(int gerantId, int tontineId) {
+        appliquerEcheances();
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
         return dao.findByTontineEtCycle(tontineId, cycleDao.dernierNumero(tontineId));
@@ -89,6 +108,7 @@ public class RenouvellementService {
 
     /** L'alerte du membre pour le dernier cycle clos, ou null s'il n'en a pas recu. */
     public Renouvellement monAlerte(int userId, int tontineId) {
+        appliquerEcheances();
         Controles.tontine(tontineId);
         return dao.findByTontineCycleEtUser(tontineId, cycleDao.dernierNumero(tontineId), userId);
     }
@@ -112,21 +132,54 @@ public class RenouvellementService {
             if (r.getStatut() != StatutRenouvellement.EN_ATTENTE) {
                 continue;
             }
-            Adhesion a = adhesionDao.findByTontineEtUser(tontineId, r.getUserId());
             String nom = Controles.utilisateur(r.getUserId()).getNomComplet();
             try {
-                adhesions.retirer(t, a);
+                retirerPourSilence(t, r);
             } catch (ServiceException e) {
                 echecs.add(nom + " (" + e.getMessage() + ")");
                 continue;
             }
-            dao.repondre(r.getId(), StatutRenouvellement.REFUSE);
-            NotificationService.notifier(r.getUserId(), "Sans r\u00e9ponse \u00e0 l'alerte de renouvellement, vous \u00eates consid\u00e9r\u00e9(e) "
-                    + "comme ne souhaitant plus participer : vous avez \u00e9t\u00e9 retir\u00e9(e) de la tontine " + t.getNom() + ".", "RENOUVELLEMENT");
             retires++;
         }
         Controles.audit(gerantId, "RENOUVELLEMENT_SANS_REPONSE", "Tontine " + t.getNom() + " - " + retires + " retir\u00e9(s)");
         Controles.exiger(echecs.isEmpty(), "Certains membres n'ont pas pu \u00eatre retir\u00e9s : " + String.join(" ; ", echecs));
+        return retires;
+    }
+
+    /** Retire un membre qui n'a pas repondu (traite comme un refus) et previent le membre et le gerant. */
+    private void retirerPourSilence(Tontine t, Renouvellement r) {
+        Adhesion a = adhesionDao.findByTontineEtUser(t.getId(), r.getUserId());
+        adhesions.retirer(t, a);
+        dao.repondre(r.getId(), StatutRenouvellement.REFUSE);
+        NotificationService.notifier(r.getUserId(), "Sans r\u00e9ponse \u00e0 l'alerte de renouvellement, vous \u00eates consid\u00e9r\u00e9(e) "
+                + "comme ne souhaitant plus participer : vous avez \u00e9t\u00e9 retir\u00e9(e) de la tontine " + t.getNom() + ".", "RENOUVELLEMENT");
+        NotificationService.notifier(t.getGerantId(), Controles.utilisateur(r.getUserId()).getNomComplet()
+                + " n'a pas r\u00e9pondu \u00e0 temps : retir\u00e9(e) de la tontine " + t.getNom() + ".", "RENOUVELLEMENT");
+    }
+
+    /**
+     * Retrait automatique : tous les membres dont le delai de reponse est depasse sans reponse sont retires, sans action
+     * du gerant. Appele regulierement par l'application (toutes les minutes) et a chaque consultation des alertes.
+     * Un membre qui a encore un solde ou un pret en cours ne peut pas etre retire : il reste en attente (le gerant regle sa situation).
+     * Retourne le nombre de membres retires.
+     */
+    public int appliquerEcheances() {
+        int retires = 0;
+        for (Renouvellement r : dao.findExpirees(java.time.LocalDateTime.now())) {
+            try {
+                Tontine t = Controles.tontine(r.getTontineId());
+                Adhesion a = adhesionDao.findByTontineEtUser(t.getId(), r.getUserId());
+                if (a == null || a.getStatut() != StatutAdhesion.ACTIF) {
+                    dao.repondre(r.getId(), StatutRenouvellement.REFUSE);
+                    continue;
+                }
+                retirerPourSilence(t, r);
+                Controles.audit(null, "RENOUVELLEMENT_DELAI_DEPASSE", "Tontine " + t.getNom() + " - utilisateur " + r.getUserId());
+                retires++;
+            } catch (RuntimeException e) {
+                // membre non retirable pour l'instant (solde, pret...) ou tontine disparue : on reessaiera plus tard
+            }
+        }
         return retires;
     }
 
@@ -135,6 +188,7 @@ public class RenouvellementService {
      * repondu sont consideres comme ne voulant plus participer et sont retires.
      */
     void preparerRelance(Tontine t, int gerantId) {
+        appliquerEcheances();
         List<Renouvellement> liste = dao.findByTontineEtCycle(t.getId(), cycleDao.dernierNumero(t.getId()));
         Controles.exiger(!liste.isEmpty(), "Avant de relancer la tontine, envoyez l'alerte de renouvellement aux membres "
                 + "(onglet Renouvellement) : chacun doit valider ou refuser de continuer.");

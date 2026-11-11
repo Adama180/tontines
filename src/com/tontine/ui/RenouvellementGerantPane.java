@@ -14,6 +14,7 @@ import com.tontine.service.RenouvellementService;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 
 /**
  * Relance de la tontine apres sa cloture : le gerant envoie une alerte a chaque membre, suit les reponses
@@ -44,10 +45,13 @@ public class RenouvellementGerantPane extends PaneGestion {
         if (alertes.isEmpty()) {
             getChildren().add(vide("Pour relancer la tontine, envoyez d'abord une alerte \u00e0 chaque membre : celui qui valide continue, "
                     + "celui qui refuse ou qui ne r\u00e9pond pas est retir\u00e9 automatiquement de la tontine."));
+            TextField delai = new TextField(String.valueOf(RenouvellementService.DELAI_DEFAUT_HEURES));
+            getChildren().add(Composants.champ("D\u00e9lai de r\u00e9ponse (en heures) : pass\u00e9 ce d\u00e9lai, les membres sans r\u00e9ponse sont retir\u00e9s automatiquement", delai));
             Button envoyer = Composants.primaire("Envoyer l'alerte de renouvellement");
             envoyer.setOnAction(e -> action(() -> {
-                int n = service.lancerAlerte(gerant.getId(), t.getId());
-                succes("L'alerte a \u00e9t\u00e9 envoy\u00e9e \u00e0 " + n + " membre(s).");
+                int heures = Saisie.entier(delai.getText(), "D\u00e9lai de r\u00e9ponse");
+                int n = service.lancerAlerte(gerant.getId(), t.getId(), heures);
+                succes("L'alerte a \u00e9t\u00e9 envoy\u00e9e \u00e0 " + n + " membre(s). R\u00e9ponse attendue sous " + heures + " h.");
             }));
             getChildren().add(envoyer);
             return;
@@ -62,10 +66,11 @@ public class RenouvellementGerantPane extends PaneGestion {
             Label etat = new Label(a.getStatut() == StatutRenouvellement.VALIDE ? "Continue"
                     : a.getStatut() == StatutRenouvellement.REFUSE ? "Retir\u00e9(e)" : "En attente");
             etat.getStyleClass().add(a.getStatut() == StatutRenouvellement.EN_ATTENTE ? "badge-type" : "badge");
-            getChildren().add(ligne(texte(nom, "Alerte envoy\u00e9e le " + Aff.date(a.getDateEnvoi())), etat));
+            getChildren().add(ligne(texte(nom, "Alerte envoy\u00e9e le " + Aff.date(a.getDateEnvoi())
+                    + (a.getDateLimite() != null && a.getStatut() == StatutRenouvellement.EN_ATTENTE ? " - r\u00e9ponse avant le " + Aff.date(a.getDateLimite()) : "")), etat));
         }
         if (attente > 0) {
-            getChildren().add(vide("Sans r\u00e9ponse, un membre est consid\u00e9r\u00e9 comme ne souhaitant plus participer : il sera retir\u00e9 automatiquement au d\u00e9marrage du " + Libelles.cycle(t) + " suivant."));
+            getChildren().add(vide("Sans r\u00e9ponse avant la date limite, un membre est consid\u00e9r\u00e9 comme ne souhaitant plus participer : il est retir\u00e9 automatiquement (sans action de votre part), au plus tard au d\u00e9marrage du " + Libelles.cycle(t) + " suivant."));
             Button retirer = Composants.contour("Retirer maintenant les membres sans r\u00e9ponse");
             retirer.setOnAction(e -> action(() -> {
                 if (Nav.confirmer("Retirer de la tontine les " + attente + " membre(s) qui n'ont pas r\u00e9pondu ?")) {

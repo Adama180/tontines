@@ -55,7 +55,9 @@ public class RenouvellementMembrePane extends VBox {
             carte = Composants.carte(titre, Composants.sousTitre(explication));
         } else if (r.getStatut() == StatutRenouvellement.EN_ATTENTE) {
             explication = "La tontine " + tf.getNom() + " est termin\u00e9e. Souhaitez-vous continuer au prochain " + Libelles.cycle(tf)
-                    + " ? Si vous validez, vous restez membre. Si vous refusez, ou si vous ne r\u00e9pondez pas avant la relance, vous serez retir\u00e9(e) automatiquement de la tontine.";
+                    + " ? Si vous validez, vous restez membre. Si vous refusez, ou si vous ne r\u00e9pondez pas"
+                    + (r.getDateLimite() != null ? " avant le " + Aff.date(r.getDateLimite()) : " avant la relance")
+                    + ", vous serez retir\u00e9(e) automatiquement de la tontine.";
             Button valider = Composants.primaire("Je continue (valider)");
             Button refuser = Composants.contour("Je ne continue pas (refuser)");
             valider.setOnAction(e -> repondre(msg, true));

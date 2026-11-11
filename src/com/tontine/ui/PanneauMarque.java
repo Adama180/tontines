@@ -25,7 +25,7 @@ public final class PanneauMarque {
             Label l = new Label(p);
             l.setWrapText(true);
             javafx.scene.Node ic = Icones.icone("coche", 20);
-            ((javafx.scene.Group) ic).getChildren().forEach(n -> n.getStyleClass().add("icone-claire"));
+            ((javafx.scene.Group) ic).getChildren().stream().filter(n -> n instanceof javafx.scene.shape.SVGPath).forEach(n -> n.getStyleClass().add("icone-claire"));
             HBox ligne = new HBox(10, ic, l);
             ligne.setAlignment(Pos.TOP_LEFT);
             ligne.getStyleClass().add("marque-point");

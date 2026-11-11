@@ -2,7 +2,7 @@ package com.tontine.model;
 
 import java.time.LocalDateTime;
 
-/** Table notification : message envoyé à un utilisateur. */
+/** Table notification : message envoy\u00e9 \u00e0 un utilisateur. */
 public class Notification {
     private int id;
     private int userId;

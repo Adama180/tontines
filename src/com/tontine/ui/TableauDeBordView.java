@@ -292,7 +292,7 @@ public class TableauDeBordView extends BorderPane implements Fenetre {
                 Label nom = new Label(t.getNom());
                 nom.getStyleClass().add("carte-titre");
                 Label detail = Composants.sousTitre(Libelles.type(t.getType()) + " - cotisation "
-                        + Format.montant(t.getMontantCotisation()) + " (" + Libelles.frequence(t.getFrequence()) + ")");
+                        + Libelles.cotisation(t) + " (" + Libelles.frequence(t.getFrequence()) + ")");
                 Label role = new Label(a == null ? "" : Libelles.role(a.getRole()));
                 role.getStyleClass().add("badge");
                 Button ouvrir = Composants.primaire("Ouvrir");

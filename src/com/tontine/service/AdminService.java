@@ -112,6 +112,7 @@ public class AdminService {
         t.setNbMembreMax(d.getNbMembre());
         t.setTauxInteret(d.getTauxInteret());
         t.setDureeMaxPret(d.getDureeMaxPret());
+        t.setPenaliteRetard(d.getPenaliteRetard());
         t.setJourCotisation(d.getJourCotisation());
         t.setHeureCotisation(d.getHeureCotisation());
         t.setGerantId(demandeur.getId());

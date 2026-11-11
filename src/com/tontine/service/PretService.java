@@ -29,6 +29,7 @@ public class PretService {
     private final PretDao pretDao = new PretDao();
     private final TontineDao tontineDao = new TontineDao();
     private final CycleDao cycleDao = new CycleDao();
+    private final com.tontine.dao.AdhesionDao adhesionDao = new com.tontine.dao.AdhesionDao();
     private final TransactionDao transactionDao = new TransactionDao();
 
     public Pret demanderPret(int userId, int tontineId, double montant, int nbJours, String motif) {
@@ -157,7 +158,7 @@ public class PretService {
         return tx;
     }
 
-    /** Remboursement confirme : met a jour le pret, et le solde du. */
+    /** Remboursement confirme : met a jour le pret, le solde du et la penalite eventuelle. */
     void appliquerRemboursement(Transaction tx) {
         Pret p = pretDao.findById(idPret(tx.getReference()));
         Controles.exiger(p != null, "Pr\u00eat introuvable pour ce remboursement.");
@@ -169,12 +170,25 @@ public class PretService {
             NotificationService.notifier(p.getUserId(), "Votre pr\u00eat de " + Format.montant(p.getMontant())
                     + " est enti\u00e8rement rembours\u00e9.", "PRET");
         }
+        // penalite de retard (une seule fois par pret)
+        if (t.getPenaliteRetard() > 0 && tx.getDate().isAfter(dateDecaissement(p).plusDays(p.getNbJours()))
+                && !penaliteDejaAppliquee(p)) {
+            // la penalite est retiree du solde de l'emprunteur (aucun paiement en plus)
+            Adhesion emprunteur = adhesionDao.findByTontineEtUser(t.getId(), p.getUserId());
+            double prelevee = emprunteur == null ? 0 : new CotisationService().prelever(t, cycleDao.findEnCours(t.getId()), emprunteur,
+                    t.getPenaliteRetard(), refPret(p), tx.getModePaiement());
+            if (prelevee > 0) {
+                NotificationService.notifier(p.getUserId(), "P\u00e9nalit\u00e9 de retard de "
+                        + Format.montant(prelevee) + " d\u00e9duite de votre solde (pr\u00eat en retard).", "PENALITE");
+            }
+        }
     }
 
     // ---------------------------------------------------------------- consultation et calculs
 
     /**
-     * Argent reellement disponible dans le fonds : tout ce qui est entre (cotisations, remboursements) moins ce qui est sorti (prets, distributions). Seuls les mouvements confirmes comptent.
+     * Argent reellement disponible dans le fonds : tout ce qui est entre (cotisations, remboursements ;
+     * les penalites sont retirees du solde des membres, donc deja comprises dans leurs cotisations) moins ce qui est sorti (prets, distributions). Seuls les mouvements confirmes comptent.
      */
     public double fondsDisponible(int tontineId) {
         double entrees = transactionDao.totalParType(tontineId, TypeTransaction.COTISATION)
@@ -232,6 +246,15 @@ public class PretService {
         int barre = reference.indexOf('|');
         String cle = barre > 0 ? reference.substring(5, barre) : reference.substring(5);
         return Integer.parseInt(cle);
+    }
+
+    private boolean penaliteDejaAppliquee(Pret p) {
+        for (Transaction tx : transactionDao.findByTontineEtUser(p.getTontineId(), p.getUserId())) {
+            if (tx.getType() == TypeTransaction.PENALITE && refPret(p).equals(tx.getReference())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private LocalDateTime dateDecaissement(Pret p) {

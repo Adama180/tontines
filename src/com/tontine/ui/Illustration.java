@@ -20,17 +20,17 @@ public class Illustration extends Pane {
         setMaxSize(440, 390);
 
         Circle halo = new Circle(240, 195, 168);
-        halo.setFill(Color.web("#d4a017", 0.16));
+        halo.setFill(Color.web("#e3a73b", 0.16));
         Circle halo2 = new Circle(96, 322, 64);
         halo2.setFill(Color.web("#ffffff", 0.08));
 
         // ---- carte principale
-        Label titre = texte("Cagnotte du cycle 3", 12, "#6b7280", "Poppins Medium");
-        Label exemple = texte("Exemple", 10, "#7a5a00", "Poppins SemiBold");
+        Label titre = texte("Cagnotte du cycle 3", 12, "#4b5768", "Inter Medium");
+        Label exemple = texte("Exemple", 10, "#7a5a00", "Inter SemiBold");
         exemple.setStyle(exemple.getStyle() + "-fx-background-color: #fdf1cc; -fx-background-radius: 10; -fx-padding: 2 8 2 8;");
         HBox haut = new HBox(titre, espace(), exemple);
         haut.setAlignment(Pos.CENTER_LEFT);
-        Label montant = texte("120 000 FCFA", 29, "#2d3036", "Poppins Bold");
+        Label montant = texte("120 000 FCFA", 29, "#16294a", "Fraunces SemiBold");
 
         Rectangle piste = new Rectangle(266, 10);
         piste.setArcWidth(10);
@@ -39,10 +39,10 @@ public class Illustration extends Pane {
         Rectangle rempli = new Rectangle(200, 10);
         rempli.setArcWidth(10);
         rempli.setArcHeight(10);
-        rempli.setFill(Color.web("#d4a017"));
+        rempli.setFill(Color.web("#e3a73b"));
         StackPane barre = new StackPane(piste, rempli);
         StackPane.setAlignment(rempli, Pos.CENTER_LEFT);
-        Label etat = texte("6 membres sur 8 ont cotis\u00e9", 12, "#6b7280", "Poppins");
+        Label etat = texte("6 membres sur 8 ont cotis\u00e9", 12, "#4b5768", "Inter");
 
         HBox avatars = new HBox(-5);
         for (String nom : new String[] { "Awa Diop", "Moussa Fall", "Fatou Ba", "Omar Sy", "Aminata Ndiaye" }) {
@@ -50,7 +50,7 @@ public class Illustration extends Pane {
             ((StackPane) a).setStyle("-fx-effect: dropshadow(gaussian, rgba(255,255,255,1), 0, 3, 0, 0);");
             avatars.getChildren().add(a);
         }
-        Label plus = texte("+3", 11, "#6b5410", "Poppins SemiBold");
+        Label plus = texte("+3", 11, "#6b5410", "Inter SemiBold");
         plus.setStyle(plus.getStyle() + "-fx-background-color: #f8efd0; -fx-background-radius: 20; -fx-padding: 8 10 8 10;");
         avatars.getChildren().add(plus);
 
@@ -64,7 +64,7 @@ public class Illustration extends Pane {
                 + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 30, 0, 0, 12);");
 
         // ---- elements flottants
-        HBox c1 = new HBox(8, Icones.icone("coche", 18), texte("Cotisation confirm\u00e9e", 12, "#2d3036", "Poppins SemiBold"));
+        HBox c1 = new HBox(8, Icones.icone("coche", 18), texte("Cotisation confirm\u00e9e", 12, "#16294a", "Inter SemiBold"));
         c1.setAlignment(Pos.CENTER_LEFT);
         c1.setStyle("-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 8 16 8 12;"
                 + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 16, 0, 0, 6);");
@@ -72,9 +72,9 @@ public class Illustration extends Pane {
         c1.setLayoutY(26);
         c1.setRotate(-4);
 
-        HBox c2 = new HBox(8, Icones.icone("portefeuille", 18), texte("Versement re\u00e7u : 20 000 FCFA", 12, "#ffffff", "Poppins SemiBold"));
+        HBox c2 = new HBox(8, Icones.icone("portefeuille", 18), texte("Versement re\u00e7u : 20 000 FCFA", 12, "#ffffff", "Inter SemiBold"));
         c2.setAlignment(Pos.CENTER_LEFT);
-        c2.setStyle("-fx-background-color: #2d3036; -fx-background-radius: 20; -fx-padding: 9 16 9 12;"
+        c2.setStyle("-fx-background-color: #16294a; -fx-background-radius: 20; -fx-padding: 9 16 9 12;"
                 + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 16, 0, 0, 6);");
         c2.getChildren().get(0).setStyle("-fx-opacity: 1;");
         c2.setLayoutX(150);
@@ -82,10 +82,10 @@ public class Illustration extends Pane {
         c2.setRotate(3);
 
         Circle piece = new Circle(27);
-        piece.setFill(Color.web("#d4a017"));
-        piece.setStroke(Color.web("#f1c94a"));
+        piece.setFill(Color.web("#e3a73b"));
+        piece.setStroke(Color.web("#e3a73b"));
         piece.setStrokeWidth(4);
-        Label f = texte("F", 22, "#22252b", "Poppins Bold");
+        Label f = texte("F", 22, "#0f1e38", "Fraunces SemiBold");
         StackPane coin = new StackPane(piece, f);
         coin.setLayoutX(362);
         coin.setLayoutY(24);
@@ -100,12 +100,12 @@ public class Illustration extends Pane {
 
     private static Label texte(String t, int taille, String couleur, String police) {
         Label l = new Label(t);
-        l.setStyle("-fx-font-family: \"" + police + "\", \"Poppins\", sans-serif; -fx-font-size: " + taille + "px; -fx-text-fill: " + couleur + ";");
+        l.setStyle("-fx-font-family: \"" + police + "\", \"Inter\", sans-serif; -fx-font-size: " + taille + "px; -fx-text-fill: " + couleur + ";");
         return l;
     }
 
     private static Label pastille(String t) {
-        Label l = texte(t, 11, "#5b4a12", "Poppins Medium");
+        Label l = texte(t, 11, "#5b4a12", "Inter Medium");
         l.setStyle(l.getStyle() + "-fx-background-color: #faf7ec; -fx-background-radius: 14; -fx-padding: 4 10 4 10; -fx-border-color: #eadfb8; -fx-border-radius: 14;");
         return l;
     }
