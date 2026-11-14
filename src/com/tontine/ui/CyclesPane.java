@@ -59,20 +59,29 @@ public class CyclesPane extends PaneGestion {
         // ---- etat du cycle
         VBox etat;
         if (cycle == null) {
-            boutonDemarrer = Composants.primaire("D\u00e9marrer un nouveau " + mot());
-            boutonDemarrer.setOnAction(e -> action(() -> {
-                Cycle c = cycles.demarrerCycle(gerant.getId(), t.getId());
-                succes("Le " + mot() + " " + c.getNumero() + " a d\u00e9marr\u00e9. Les membres sont pr\u00e9venus.");
-            }));
+            if (t.isFondsCommun()) {
+                boutonDemarrer = Composants.primaire("D\u00e9marrer le cycle");
+                boutonDemarrer.setOnAction(e -> action(() -> {
+                    Cycle c = cycles.demarrerCycle(gerant.getId(), t.getId());
+                    succes("Le " + mot() + " " + c.getNumero() + " a d\u00e9marr\u00e9. Les membres sont pr\u00e9venus.");
+                }));
+            }
+            Label infoAuto = vide(t.isFondsCommun() ? "" : "Aucun bouton de d\u00e9marrage : les tours s'ouvrent automatiquement selon la fr\u00e9quence de cotisation ("
+                    + Libelles.periode(t.getFrequence()) + "). "
+                    + (t.getStatut() == com.tontine.model.StatutTontine.CLOTUREE
+                            ? "La tontine est termin\u00e9e : envoyez l'alerte de renouvellement (onglet Renouvellement), puis relancez-la."
+                            : "Le prochain tour d\u00e9marrera tout seul \u00e0 la prochaine \u00e9ch\u00e9ance."));
             etat = Composants.carte(titreSection("Aucun " + mot() + " en cours"),
-                    vide((t.isFondsCommun()
-                            ? "Le " + mot() + " se d\u00e9marre une seule fois : il dure " + t.getDureeEnCycle() + " p\u00e9riode(s) ("
+                    t.isFondsCommun() ? vide("Le " + mot() + " se d\u00e9marre une seule fois : il dure " + t.getDureeEnCycle() + " p\u00e9riode(s) ("
                                     + Libelles.periode(t.getFrequence()) + ") et chaque membre y cotise une fois par "
-                                    + Libelles.periode(t.getFrequence()) + ". Les membres pourront aussi emprunter."
-                            : "D\u00e9marrez un " + mot() + " pour que les membres puissent cotiser.")),
-                    boutonDemarrer);
+                                    + Libelles.periode(t.getFrequence()) + ". Les membres pourront aussi emprunter.") : infoAuto,
+                    t.isFondsCommun() ? boutonDemarrer : new javafx.scene.layout.Region());
         } else {
-            boutonCloturer = Composants.primaire("Cl\u00f4turer le " + mot() + " " + cycle.getNumero());
+            boolean verserAuto = !t.isFondsCommun();
+            boutonCloturer = Composants.primaire(verserAuto ? "Verser la cagnotte" : "Cl\u00f4turer le " + mot() + " " + cycle.getNumero());
+            if (verserAuto) {
+                boutonCloturer.setDisable(!cycles.peutVerser(t.getId()));
+            }
             boutonCloturer.setOnAction(e -> action(() -> {
                 if (!Nav.confirmer("Cl\u00f4turer le " + mot() + " " + cycle.getNumero() + " ? Les sommes seront vers\u00e9es aux b\u00e9n\u00e9ficiaires.")) {
                     return;
@@ -93,8 +102,11 @@ public class CyclesPane extends PaneGestion {
                             ? "Fin pr\u00e9vue le " + Format.date(CotisationService.finDeCycle(cycle, t)) + ". \u00c0 la fin, chaque membre re\u00e7oit "
                                     + "sa cagnotte plus une part \u00e9gale des int\u00e9r\u00eats. "
                                     + "Tous les pr\u00eats doivent \u00eatre rembours\u00e9s et les paiements en esp\u00e8ces confirm\u00e9s."
-                            : "\u00c0 la cl\u00f4ture, le b\u00e9n\u00e9ficiaire du " + mot() + " re\u00e7oit le total collect\u00e9. "
-                                    + "Les paiements en esp\u00e8ces doivent \u00eatre confirm\u00e9s."),
+                            : "Versement automatique \u00e0 la date limite de cotisation (23 h 59), m\u00eame si tous les membres n'ont pas cotis\u00e9. "
+                                    + (cycles.peutVerser(t.getId())
+                                            ? "Tous les membres ont cotis\u00e9 : vous pouvez verser la cagnotte maintenant."
+                                            : "Le bouton Verser sera disponible d\u00e8s que tous les membres auront cotis\u00e9"
+                                                    + (t.isTirageAuSort() ? " (apr\u00e8s le tirage)." : "."))),
                     boutonCloturer);
         }
         getChildren().add(etat);

@@ -17,7 +17,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
-/** Effectuer une cotisation : montant, mode de paiement (Wave, Orange Money, especes), confirmation. */
+/** Effectuer une cotisation : montant, mode de paiement (Wave ou Orange Money), confirmation. */
 public class CotiserPane extends VBox {
 
     private final TextField montant = new TextField();
@@ -34,7 +34,7 @@ public class CotiserPane extends VBox {
             Label titre = new Label("Aucun " + Libelles.cycle(t) + " en cours");
             titre.getStyleClass().add("carte-titre");
             getChildren().add(Composants.carte(titre, Composants.sousTitre(
-                    "Vous pourrez cotiser d\u00e8s que le g\u00e9rant aura d\u00e9marr\u00e9 un nouveau " + Libelles.cycle(t) + ".")));
+                    "Le prochain " + Libelles.cycle(t) + " d\u00e9marre automatiquement \u00e0 la prochaine \u00e9ch\u00e9ance de cotisation.")));
             return;
         }
         boolean fondsCommun = t.isFondsCommun();
@@ -120,13 +120,8 @@ public class CotiserPane extends VBox {
                     return;
                 }
                 Transaction tx = new CotisationService().payerCotisation(u.getId(), t.getId(), m, mode, paiement.getNumero());
-                if (mode == ModePaiement.ESPECE) {
-                    Composants.montrer(message, "Paiement de " + Format.montant(m) + " enregistr\u00e9 en esp\u00e8ces. "
-                            + "Il sera confirm\u00e9 par le g\u00e9rant quand il recevra l'argent.", false);
-                } else {
-                    Composants.montrer(message, "Cotisation de " + Format.montant(m) + " enregistr\u00e9e par " + Libelles.mode(mode)
-                            + " (r\u00e9f\u00e9rence " + tx.getReference() + ").", false);
-                }
+                Composants.montrer(message, "Cotisation de " + Format.montant(m) + " enregistr\u00e9e par " + Libelles.mode(mode)
+                        + " (r\u00e9f\u00e9rence " + tx.getReference() + ").", false);
                 payer.setDisable(true);
             } catch (RuntimeException ex) {
                 Composants.montrer(message, Nav.messageErreur(ex), true);

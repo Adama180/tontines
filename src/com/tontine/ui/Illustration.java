@@ -54,7 +54,7 @@ public class Illustration extends Pane {
         plus.setStyle(plus.getStyle() + "-fx-background-color: #f8efd0; -fx-background-radius: 20; -fx-padding: 8 10 8 10;");
         avatars.getChildren().add(plus);
 
-        HBox modes = new HBox(8, pastille("Wave"), pastille("Orange Money"), pastille("Esp\u00e8ces"));
+        HBox modes = new HBox(8, pastille("Wave"), pastille("Orange Money"));
 
         VBox carte = new VBox(12, haut, montant, barre, etat, avatars, modes);
         carte.setLayoutX(62);

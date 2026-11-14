@@ -29,7 +29,7 @@ import com.tontine.model.TypeTransaction;
 import com.tontine.model.Utilisateur;
 
 /**
- * Cotisations (Wave, Orange Money, especes), confirmation des paiements en especes et historique.
+ * Cotisations (Wave et Orange Money uniquement : aucune cotisation en especes), confirmation des remboursements de pret en especes et historique.
  * Fonds commun : montant libre dans l'intervalle defini par le gerant (minimum 1 000 FCFA), une cotisation par periode (jour, semaine ou mois) pendant tout le cycle,
  * penalite de retard si elle est payee apres la fin de sa periode. Tour de role / tirage au sort : montant fixe, une par cycle.
  */
@@ -47,7 +47,7 @@ public class CotisationService {
 
     /**
      * Le membre cotise. Wave / Orange Money : confirme tout de suite (simulation).
-     * Especes : reste "en attente" jusqu'a la confirmation du gerant.
+     * Les especes ne sont pas acceptees pour les cotisations (membres comme gerant).
      */
     public Transaction payerCotisation(int userId, int tontineId, double montant, ModePaiement mode,
             String numeroMobile) {
@@ -56,43 +56,14 @@ public class CotisationService {
         Adhesion a = Controles.adhesionActive(tontineId, userId);
         Cycle c = Controles.cycleEnCours(t);
         Controles.exiger(mode != null, "Choisissez un mode de paiement.");
+        Controles.exiger(mode != ModePaiement.ESPECE, "Les cotisations en esp\u00e8ces ne sont pas accept\u00e9es : payez par Wave ou Orange Money.");
         controlerMontant(t, c, userId, montant);
 
         Transaction tx = nouvelleTransaction(t, c, userId, montant, mode);
-        if (mode == ModePaiement.ESPECE) {
-            tx.setStatut(StatutTransaction.EN_ATTENTE);
-            tx.setReference("ESP-" + System.currentTimeMillis());
-            transactionDao.insert(tx);
-            NotificationService.notifier(t.getGerantId(), "Un paiement en esp\u00e8ces de "
-                    + Format.montant(montant) + " attend votre confirmation (tontine " + t.getNom() + ").",
-                    "COTISATION");
-        } else {
-            tx.setReference(PasserelleSimulee.initierPaiement(mode, Controles.arrondir(montant), numeroMobile));
-            tx.setStatut(StatutTransaction.CONFIRMEE);
-            transactionDao.insert(tx);
-            appliquer(tx, t, c, a);
-        }
-        return tx;
-    }
-
-    /** Le gerant enregistre directement une cotisation recue en especes d'un membre. */
-    public Transaction enregistrerCotisationEspece(int gerantId, int tontineId, int membreUserId, double montant) {
-        Tontine t = Controles.tontine(tontineId);
-        Controles.exigerGerant(t, gerantId);
-        Controles.exiger(membreUserId != gerantId,
-                "Votre propre paiement en esp\u00e8ces doit \u00eatre confirm\u00e9 par l'administrateur : "
-                        + "utilisez 'Payer ma cotisation' puis demandez-lui la confirmation.");
-        Adhesion a = Controles.adhesionActive(tontineId, membreUserId);
-        Cycle c = Controles.cycleEnCours(t);
-        controlerMontant(t, c, membreUserId, montant);
-
-        Transaction tx = nouvelleTransaction(t, c, membreUserId, montant, ModePaiement.ESPECE);
-        tx.setReference("ESP-" + System.currentTimeMillis());
+        tx.setReference(PasserelleSimulee.initierPaiement(mode, Controles.arrondir(montant), numeroMobile));
         tx.setStatut(StatutTransaction.CONFIRMEE);
         transactionDao.insert(tx);
         appliquer(tx, t, c, a);
-        NotificationService.notifier(membreUserId, "Votre cotisation de " + Format.montant(montant)
-                + " (esp\u00e8ces) a \u00e9t\u00e9 enregistr\u00e9e pour la tontine " + t.getNom() + ".", "COTISATION");
         return tx;
     }
 
@@ -267,7 +238,7 @@ public class CotisationService {
     private void appliquer(Transaction tx, Tontine t, Cycle c, Adhesion a) {
         adhesionDao.enregistrerCotisation(a.getId(), tx.getMontant());
         LocalDateTime limite = t.isFondsCommun() ? echeanceMembre(t, c, a, tx)
-                : limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
+                : limiteTour(t, c);
         if (t.getPenaliteRetard() > 0 && retardPenalise(limite, tx.getDate())) {
             // la penalite n'est pas payee en plus : elle est retiree du solde du membre
             double prelevee = prelever(t, c, a, t.getPenaliteRetard(), "PEN-" + tx.getId(), tx.getModePaiement());
@@ -349,7 +320,7 @@ public class CotisationService {
             return etatCotisation(userId, t.getId()).penalite;
         }
         double total = 0;
-        if (t.getPenaliteRetard() > 0 && retardPenalise(limite(t, c.getDateDebut(), echeance(c, t.getFrequence())), LocalDateTime.now())) {
+        if (t.getPenaliteRetard() > 0 && retardPenalise(limiteTour(t, c), LocalDateTime.now())) {
             total += t.getPenaliteRetard();
         }
         return Controles.arrondir(total);
@@ -365,7 +336,7 @@ public class CotisationService {
         e.beneficiaire = beneficiaire == null ? null : beneficiaire.getNomComplet();
         e.tirageAttendu = beneficiaire == null;
         e.exemption = motifExemption(t, c, userId);
-        e.limite = limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
+        e.limite = limiteTour(t, c);
         e.echeance = e.limite.toLocalDate();
         e.enRetard = LocalDateTime.now().isAfter(e.limite);
         e.absent = LocalDateTime.now().isAfter(finDeJourLimite(e.limite)) && cotisationDuCycle(c, userId) <= 0 && e.exemption == null;
@@ -518,6 +489,14 @@ public class CotisationService {
     int cotisationsManquantes(Tontine t, Cycle c, Adhesion a) {
         int attendues = Math.max(0, t.getDureeEnCycle() - decalage(t, c, a));
         return Math.max(0, attendues - cotisationsFaites(c, a.getUserId()));
+    }
+
+    /** Date limite de cotisation d'un tour : journalier = le jour du tour a l'heure fixee ; sinon jour fixe dans la periode. */
+    public static LocalDateTime limiteTour(Tontine t, Cycle c) {
+        if (t.getFrequence() == Frequence.JOURNALIERE) {
+            return LocalDateTime.of(c.getDateDebut(), t.getHeureCotisation());
+        }
+        return limite(t, c.getDateDebut(), echeance(c, t.getFrequence()));
     }
 
     /** Date limite de cotisation d'un cycle (tour de role / tirage au sort) : debut + une periode. */

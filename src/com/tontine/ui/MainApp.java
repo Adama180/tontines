@@ -59,6 +59,7 @@ public class MainApp extends Application {
         Runnable tache = () -> {
             try {
                 new com.tontine.service.RenouvellementService().appliquerEcheances();
+                new com.tontine.service.CycleService().avancerTours();
             } catch (RuntimeException e) {
                 System.err.println("Retrait automatique impossible pour l'instant : " + e.getMessage());
             }

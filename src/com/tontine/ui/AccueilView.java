@@ -58,8 +58,6 @@ public class AccueilView extends BorderPane {
     // ------------------------------------------------------------------ bandeau principal
 
     private Node hero() {
-        FlowPane puces = new FlowPane(8, 8, puce("Wave et Orange Money"), puce("Historique visible par tous"), puce("Pi\u00e8ce d'identit\u00e9 v\u00e9rifi\u00e9e"));
-
         Label l1 = new Label("Vos tontines,");
         l1.getStyleClass().add("hero-titre");
         Label l2 = new Label("en toute transparence.");
@@ -73,11 +71,9 @@ public class AccueilView extends BorderPane {
 
         Button explorer = Composants.or("Explorer les tontines");
         explorer.setOnAction(e -> Nav.aller(PagePublique.explorer()));
-        Button creer = Composants.contourClair("Cr\u00e9er ma propre tontine");
-        creer.setOnAction(e -> Nav.aller(PagePublique.creerTontine()));
-        FlowPane actions = new FlowPane(12, 12, explorer, creer);
+        FlowPane actions = new FlowPane(12, 12, explorer);
 
-        VBox gauche = new VBox(20, puces, titre, texte, actions);
+        VBox gauche = new VBox(20, titre, texte, actions);
         gauche.setPrefWidth(520);
         gauche.setMaxWidth(560);
 
@@ -122,13 +118,6 @@ public class AccueilView extends BorderPane {
         ligne.prefWrapLengthProperty().bind(javafx.beans.binding.Bindings.max(320, hero.widthProperty().subtract(96)));
         Effets.apparition(gauche, 0);
         return hero;
-    }
-
-    private Node puce(String texte) {
-        Label l = new Label(texte);
-        HBox h = new HBox(l);
-        h.getStyleClass().add("hero-puce");
-        return h;
     }
 
     // ------------------------------------------------------------------ chiffres de la plateforme

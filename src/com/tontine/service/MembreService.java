@@ -43,6 +43,10 @@ public class MembreService {
 
     /** Cycle en cours, ou null s'il n'y en a pas. */
     public Cycle cycleEnCours(int tontineId) {
+        Tontine t = new com.tontine.dao.TontineDao().findById(tontineId);
+        if (t != null && !t.isFondsCommun()) {
+            new CycleService().assurerTourEnCours(tontineId);
+        }
         return cycleDao.findEnCours(tontineId);
     }
 

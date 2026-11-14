@@ -2,6 +2,8 @@ package com.tontine.ui;
 
 import com.tontine.model.Utilisateur;
 import com.tontine.service.AuthService;
+import com.tontine.service.CompteSuspenduException;
+import com.tontine.service.ReactivationService;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -34,17 +36,48 @@ public class ConnexionView extends StackPane {
             Composants.montrer(message, messageSucces, false);
         }
 
+        // zone affichee automatiquement quand le compte est suspendu : motif + bouton de demande de reactivation
+        TextField motif = new TextField();
+        motif.setPromptText("Motif de votre demande (obligatoire)");
+        Button demander = Composants.primaire("Demander la r\u00e9activation de mon compte");
+        demander.setMaxWidth(Double.MAX_VALUE);
+        Label explication = Composants.sousTitre("Votre compte est suspendu. Indiquez le motif de votre demande : elle sera envoy\u00e9e \u00e0 l'administrateur, "
+                + "qui vous r\u00e9pondra par notification.");
+        VBox zoneReactivation = new VBox(10, explication, Composants.champ("Motif de la demande", motif), demander);
+        zoneReactivation.setVisible(false);
+        zoneReactivation.setManaged(false);
+
         Button valider = Composants.primaire("Se connecter");
         valider.setMaxWidth(Double.MAX_VALUE);
         valider.setDefaultButton(true);
         valider.setOnAction(e -> {
             Composants.cacher(message);
+            zoneReactivation.setVisible(false);
+            zoneReactivation.setManaged(false);
             try {
                 Utilisateur u = auth.seConnecter(identifiant.getText(), motDePasse.getText());
                 Nav.aller(new TableauDeBordView(u));
+            } catch (CompteSuspenduException ex) {
+                Composants.montrer(message, Nav.messageErreur(ex), true);
+                zoneReactivation.setVisible(true); // le bouton apparait automatiquement ; le mot de passe saisi est conserve pour la demande
+                zoneReactivation.setManaged(true);
             } catch (RuntimeException ex) {
                 Composants.montrer(message, Nav.messageErreur(ex), true);
                 motDePasse.clear();
+            }
+        });
+
+        demander.setOnAction(e -> {
+            Composants.cacher(message);
+            try {
+                new ReactivationService().demanderReactivation(identifiant.getText(), motDePasse.getText(), motif.getText());
+                zoneReactivation.setVisible(false);
+                zoneReactivation.setManaged(false);
+                motif.clear();
+                motDePasse.clear();
+                Composants.montrer(message, "Votre demande de r\u00e9activation a \u00e9t\u00e9 envoy\u00e9e \u00e0 l'administrateur.", false);
+            } catch (RuntimeException ex) {
+                Composants.montrer(message, Nav.messageErreur(ex), true);
             }
         });
 
@@ -66,6 +99,7 @@ public class ConnexionView extends StackPane {
                 Composants.champ("Identifiant", identifiant),
                 Composants.champ("Mot de passe", motDePasse),
                 ligneOubli,
+                zoneReactivation,
                 valider, inscription, retour);
         carte.getStyleClass().add("auth-carte");
         carte.setMaxWidth(440);

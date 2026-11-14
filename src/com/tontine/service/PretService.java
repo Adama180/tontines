@@ -131,6 +131,7 @@ public class PretService {
         Tontine t = Controles.tontine(p.getTontineId());
         Cycle c = Controles.cycleEnCours(t);
         Controles.exiger(mode != null, "Choisissez un mode de paiement.");
+        Controles.exiger(mode != ModePaiement.ESPECE, "Les remboursements en esp\u00e8ces ne sont pas accept\u00e9s : payez par Wave ou Orange Money.");
         Controles.exiger(montant > 0, "Le montant doit \u00eatre positif.");
         double reste = resteAPayer(p, t);
         Controles.exiger(montant <= reste + 0.005,
@@ -143,18 +144,10 @@ public class PretService {
         tx.setType(TypeTransaction.REMBOURSEMENT);
         tx.setMontant(Controles.arrondir(montant));
         tx.setModePaiement(mode);
-        if (mode == ModePaiement.ESPECE) {
-            tx.setStatut(StatutTransaction.EN_ATTENTE);
-            tx.setReference(refPret(p) + "|ESP");
-            transactionDao.insert(tx);
-            NotificationService.notifier(t.getGerantId(), "Un remboursement de pr\u00eat en esp\u00e8ces de "
-                    + Format.montant(montant) + " attend votre confirmation (tontine " + t.getNom() + ").", "PRET");
-        } else {
-            tx.setStatut(StatutTransaction.CONFIRMEE);
-            tx.setReference(refPret(p) + "|" + PasserelleSimulee.initierPaiement(mode, montant, numeroMobile));
-            transactionDao.insert(tx);
-            appliquerRemboursement(tx);
-        }
+        tx.setStatut(StatutTransaction.CONFIRMEE);
+        tx.setReference(refPret(p) + "|" + PasserelleSimulee.initierPaiement(mode, montant, numeroMobile));
+        transactionDao.insert(tx);
+        appliquerRemboursement(tx);
         return tx;
     }
 

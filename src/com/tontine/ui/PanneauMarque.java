@@ -36,7 +36,7 @@ public final class PanneauMarque {
         v.getChildren().add(bas);
         Label paiements = new Label("Paiements pris en charge");
         paiements.getStyleClass().add("marque-texte");
-        javafx.scene.layout.FlowPane modes = new javafx.scene.layout.FlowPane(8, 8, puce("Wave"), puce("Orange Money"), puce("Esp\u00e8ces"));
+        javafx.scene.layout.FlowPane modes = new javafx.scene.layout.FlowPane(8, 8, puce("Wave"), puce("Orange Money"));
         v.getChildren().addAll(paiements, modes);
         v.getStyleClass().add("panneau-marque");
         return v;

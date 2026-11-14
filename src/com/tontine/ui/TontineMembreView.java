@@ -80,7 +80,10 @@ public class TontineMembreView extends VBox {
         ajouterOnglet("Demandes d'adh\u00e9sion", () -> new DemandesAdhesionPane(utilisateur, tontine));
         ajouterOnglet("Membres", () -> new MembresGerantPane(utilisateur, tontine));
         ajouterOnglet("Renouvellement", () -> new RenouvellementGerantPane(utilisateur, tontine));
-        ajouterOnglet("Esp\u00e8ces", () -> new EspecesPane(utilisateur, tontine));
+        if (!new com.tontine.service.CotisationService().paiementsEnAttente(utilisateur.getId(), tontine.getId()).isEmpty()) {
+            // anciens paiements en especes encore en attente (les especes ne sont plus acceptees) : le gerant les traite ici
+            ajouterOnglet("Anciens paiements esp\u00e8ces", () -> new EspecesPane(utilisateur, tontine));
+        }
         if (tontine.isFondsCommun()) {
             ajouterOnglet("Pr\u00eats \u00e0 valider", () -> new PretsAValiderPane(utilisateur, tontine));
         }

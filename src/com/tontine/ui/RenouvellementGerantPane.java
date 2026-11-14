@@ -80,8 +80,13 @@ public class RenouvellementGerantPane extends PaneGestion {
             }));
             getChildren().add(retirer);
         } else {
-            getChildren().add(vide("Tous les membres ont r\u00e9pondu : vous pouvez relancer la tontine (onglet "
-                    + (t.isFondsCommun() ? "Cycles" : "Tours") + ")."));
+            getChildren().add(vide("Tous les membres ont r\u00e9pondu : vous pouvez relancer la tontine."));
+            Button relancer = Composants.primaire("Relancer la tontine");
+            relancer.setOnAction(e -> action(() -> {
+                com.tontine.model.Cycle c = new com.tontine.service.CycleService().demarrerCycle(gerant.getId(), t.getId());
+                succes("La tontine est relanc\u00e9e : " + Libelles.cycle(t) + " " + c.getNumero() + " d\u00e9marr\u00e9. Les membres sont pr\u00e9venus.");
+            }));
+            getChildren().add(relancer);
         }
     }
 }

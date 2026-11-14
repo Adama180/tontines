@@ -108,8 +108,13 @@ final class Controles {
     }
 
     static Cycle cycleEnCours(Tontine t) {
+        if (!t.isFondsCommun()) {
+            new CycleService().assurerTourEnCours(t.getId()); // les tours demarrent tout seuls selon la frequence
+        }
         Cycle c = CYCLES.findEnCours(t.getId());
-        exiger(c != null, "Aucun " + Libelles.cycle(t) + " en cours pour cette tontine. Le g\u00e9rant doit d'abord d\u00e9marrer un " + Libelles.cycle(t) + ".");
+        exiger(c != null, t.isFondsCommun()
+                ? "Aucun cycle en cours pour cette tontine. Le g\u00e9rant doit d'abord d\u00e9marrer le cycle."
+                : "Aucun tour en cours : le prochain tour d\u00e9marre automatiquement \u00e0 la prochaine \u00e9ch\u00e9ance de cotisation.");
         return c;
     }
 

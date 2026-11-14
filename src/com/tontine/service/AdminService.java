@@ -70,6 +70,7 @@ public class AdminService {
         Utilisateur u = utilisateurDao.findById(userId);
         Controles.exiger(u != null, "Utilisateur introuvable.");
         utilisateurDao.changerStatut(userId, StatutCompte.ACTIF);
+        new ReactivationService().cloreDemandes(userId, adminId);
         NotificationService.notifier(userId, "Votre compte a \u00e9t\u00e9 r\u00e9activ\u00e9.", "COMPTE");
         Controles.audit(adminId, "COMPTE_REACTIVE", u.getNomComplet() + " (" + u.getEmail() + ")");
     }

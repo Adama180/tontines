@@ -48,8 +48,8 @@ public class AuthService {
         return u;
     }
 
-    /** Connexion par email ou telephone. Memorise l'utilisateur dans la Session. */
-    public Utilisateur seConnecter(String login, String motDePasse) {
+    /** Retrouve le compte par email ou telephone et verifie le mot de passe (sans tenir compte de la suspension). */
+    Utilisateur verifierIdentifiants(String login, String motDePasse) {
         Controles.exiger(login != null && !login.trim().isEmpty() && motDePasse != null && !motDePasse.isEmpty(),
                 "Saisissez votre identifiant et votre mot de passe.");
         Utilisateur u = dao.findByLogin(login.trim().toLowerCase());
@@ -65,8 +65,18 @@ public class AuthService {
         }
         Controles.exiger(u != null && PasswordUtil.verifier(motDePasse, u.getMotDePasse()),
                 "Identifiant ou mot de passe incorrect.");
-        Controles.exiger(u.getStatut() == StatutCompte.ACTIF,
-                "Votre compte est suspendu. Contactez l'administrateur.");
+        return u;
+    }
+
+    /**
+     * Connexion par email ou telephone. Memorise l'utilisateur dans la Session. Compte suspendu (identifiants corrects) :
+     * CompteSuspenduException, qui declenche le bouton de demande de reactivation.
+     */
+    public Utilisateur seConnecter(String login, String motDePasse) {
+        Utilisateur u = verifierIdentifiants(login, motDePasse);
+        if (u.getStatut() != StatutCompte.ACTIF) {
+            throw new CompteSuspenduException();
+        }
         Session.setUtilisateur(u);
         return u;
     }

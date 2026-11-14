@@ -191,9 +191,7 @@ public class PretsPane extends VBox {
                     return;
                 }
                 prets.rembourser(u.getId(), p.getId(), m, mode, paiement.getNumero());
-                banniere = mode == ModePaiement.ESPECE
-                        ? "Remboursement de " + Format.montant(m) + " enregistr\u00e9 en esp\u00e8ces : il sera pris en compte quand le g\u00e9rant le confirmera."
-                        : "Remboursement de " + Format.montant(m) + " enregistr\u00e9.";
+                banniere = "Remboursement de " + Format.montant(m) + " enregistr\u00e9.";
                 construire();
             } catch (RuntimeException ex) {
                 Composants.montrer(msg, Nav.messageErreur(ex), true);

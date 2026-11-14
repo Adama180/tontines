@@ -58,6 +58,8 @@ public class CycleService {
     public Cycle demarrerCycle(int gerantId, int tontineId) {
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
+        Controles.exiger(t.isFondsCommun() || t.getStatut() == StatutTontine.CLOTUREE,
+                "Les tours d\u00e9marrent automatiquement selon la fr\u00e9quence de cotisation : vous n'avez rien \u00e0 d\u00e9marrer.");
         Controles.exiger(cycleDao.findEnCours(tontineId) == null, "Un " + Libelles.cycle(t) + " est d\u00e9j\u00e0 en cours.");
         if (t.getStatut() == StatutTontine.CLOTUREE) { // relance : ceux qui n'ont pas repondu a l'alerte sont retires
             new RenouvellementService().preparerRelance(t, gerantId);
@@ -92,7 +94,122 @@ public class CycleService {
     public List<Distribution> cloturerCycle(int gerantId, int tontineId) {
         Tontine t = Controles.tontine(tontineId);
         Controles.exigerGerant(t, gerantId);
-        Cycle c = Controles.cycleEnCours(t);
+        if (!t.isFondsCommun()) {
+            Cycle c = cycleDao.findEnCours(tontineId);
+            Controles.exiger(c != null, "Aucun " + Libelles.cycle(t) + " en cours.");
+            Controles.exiger(peutVerser(tontineId), "Le versement est automatique \u00e0 la date limite de cotisation (23 h 59). "
+                    + "Le bouton Verser n'est disponible que lorsque tous les membres ont cotis\u00e9 (et, au tirage au sort, apr\u00e8s le tirage).");
+        }
+        return cloturer(t, gerantId);
+    }
+
+    /** Versement automatique du systeme : tour de role / tirage au sort dont la date limite (23 h 59) est depassee. */
+    public List<Distribution> verserAutomatiquement(int tontineId) {
+        Tontine t = Controles.tontine(tontineId);
+        Cycle c = cycleDao.findEnCours(tontineId);
+        Controles.exiger(!t.isFondsCommun() && c != null, "Aucun tour en cours.");
+        Controles.exiger(java.time.LocalDateTime.now().isAfter(CotisationService.finDeJourLimite(CotisationService.limiteTour(t, c))),
+                "La date limite de cotisation n'est pas encore pass\u00e9e.");
+        return cloturer(t, t.getGerantId());
+    }
+
+    /**
+     * Tour de role / tirage au sort : le gerant peut verser la cagnotte avant l'echeance seulement si tous les membres
+     * tenus de cotiser l'ont fait (et, au tirage au sort, apres le tirage). Sinon le systeme verse tout seul a 23 h 59.
+     */
+    public boolean peutVerser(int tontineId) {
+        Tontine t = tontineDao.findById(tontineId);
+        Cycle c = cycleDao.findEnCours(tontineId);
+        if (t == null || c == null || t.isFondsCommun() || !tourTire(t, c)) {
+            return false;
+        }
+        return new CotisationService().membresSansCotisation(tontineId).isEmpty()
+                && transactionDao.totalParTypeEtCycle(c.getId(), TypeTransaction.COTISATION) > 0;
+    }
+
+    // ---------------------------------------------------------------- tours automatiques
+
+    /** Parcourt les tontines a tour de role / tirage au sort actives (appele chaque minute par l'application). */
+    public void avancerTours() {
+        for (Tontine t : tontineDao.findAll()) {
+            if (!t.isFondsCommun() && t.getStatut() == StatutTontine.ACTIVE) {
+                try {
+                    assurerTourEnCours(t.getId());
+                } catch (RuntimeException e) {
+                    // une tontine en erreur ne doit pas bloquer les autres
+                }
+            }
+        }
+    }
+
+    /**
+     * Tour de role / tirage au sort : sans action du gerant, cloture le tour dont la periode est finie
+     * (tour de role, ou tirage deja fait) puis ouvre le tour suivant a la date prevue par la frequence.
+     * Idempotent : peut etre appele a tout moment.
+     */
+    public void assurerTourEnCours(int tontineId) {
+        Tontine t = tontineDao.findById(tontineId);
+        if (t == null || t.isFondsCommun() || t.getStatut() != StatutTontine.ACTIVE) {
+            return;
+        }
+        Cycle c = cycleDao.findEnCours(tontineId);
+        LocalDate aujourdhui = LocalDate.now();
+        if (c != null) {
+            boolean periodeFinie = java.time.LocalDateTime.now().isAfter(
+                    CotisationService.finDeJourLimite(CotisationService.limiteTour(t, c)));
+            boolean pret = t.isTourDeRole() || tourTire(t, c);
+            if (!periodeFinie || !pret) {
+                return;
+            }
+            try {
+                cloturer(t, t.getGerantId());
+            } catch (ServiceException e) {
+                return; // ex. paiement en attente : le tour reste ouvert
+            }
+            t = tontineDao.findById(tontineId);
+            if (t.getStatut() != StatutTontine.ACTIVE) {
+                return; // tontine terminee : renouvellement
+            }
+        }
+        if (cycleDao.findEnCours(tontineId) != null || adhesionDao.compterActifs(tontineId) < 2) {
+            return;
+        }
+        List<Cycle> cycles = cycleDao.findByTontine(tontineId);
+        Cycle dernier = null;
+        for (Cycle x : cycles) {
+            if (dernier == null || x.getNumero() > dernier.getNumero()) {
+                dernier = x;
+            }
+        }
+        if (dernier != null && aujourdhui.isBefore(CotisationService.echeance(dernier, t.getFrequence()))) {
+            return;
+        }
+        Cycle n = new Cycle();
+        n.setTontineId(tontineId);
+        n.setNumero(cycleDao.dernierNumero(tontineId) + 1);
+        n.setDateDebut(aujourdhui);
+        cycleDao.insert(n);
+        String suite = t.isTirageAuSort() ? " Le g\u00e9rant va lancer le tirage, puis vous pourrez cotiser." : " Pensez \u00e0 cotiser !";
+        NotificationService.notifierMembres(tontineId, "Le " + Libelles.cycle(t) + " " + n.getNumero() + " de la tontine "
+                + t.getNom() + " a d\u00e9marr\u00e9 automatiquement." + suite, "CYCLE", null);
+    }
+
+    private boolean tourTire(Tontine t, Cycle c) {
+        if (!t.isTirageAuSort()) {
+            return true;
+        }
+        for (Tirage ti : tirageDao.findByTontine(t.getId())) {
+            if (ti.getSemaine() == c.getNumero()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<Distribution> cloturer(Tontine t, int gerantId) {
+        int tontineId = t.getId();
+        Cycle c = cycleDao.findEnCours(tontineId);
+        Controles.exiger(c != null, "Aucun " + Libelles.cycle(t) + " en cours \u00e0 cl\u00f4turer.");
         for (Transaction tx : transactionDao.findByCycle(c.getId())) {
             Controles.exiger(tx.getStatut() != StatutTransaction.EN_ATTENTE,
                     "Des paiements en esp\u00e8ces attendent encore votre confirmation.");

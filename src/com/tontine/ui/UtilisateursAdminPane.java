@@ -4,7 +4,9 @@ import java.util.List;
 
 import com.tontine.model.StatutCompte;
 import com.tontine.model.Utilisateur;
+import com.tontine.model.DemandeReactivation;
 import com.tontine.service.AdminService;
+import com.tontine.service.ReactivationService;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -16,6 +18,8 @@ public class UtilisateursAdminPane extends PaneGestion {
 
     private final Utilisateur admin;
     private final AdminService service = new AdminService();
+    private final ReactivationService reactivations = new ReactivationService();
+    private final com.tontine.dao.UtilisateurDao utilisateurs = new com.tontine.dao.UtilisateurDao();
     private final TextField recherche = new TextField();
     private final VBox liste = new VBox(12);
     private final Label resume = new Label();
@@ -31,7 +35,27 @@ public class UtilisateursAdminPane extends PaneGestion {
 
     @Override
     protected void construire() {
-        getChildren().addAll(recherche, resume, liste);
+        // demandes de reactivation envoyees par les utilisateurs suspendus
+        List<DemandeReactivation> demandes = reactivations.demandesEnAttente(admin.getId());
+        getChildren().add(titreSection("Demandes de r\u00e9activation (" + demandes.size() + ")"));
+        if (demandes.isEmpty()) {
+            getChildren().add(vide("Aucune demande de r\u00e9activation en attente."));
+        }
+        for (DemandeReactivation d : demandes) {
+            Utilisateur u = utilisateurs.findById(d.getUserId());
+            Button accepter = Composants.primaire("R\u00e9activer le compte");
+            accepter.setOnAction(e -> action(() -> {
+                reactivations.traiter(admin.getId(), d.getId(), true);
+                succes("Le compte de " + u.getNomComplet() + " est r\u00e9activ\u00e9.");
+            }));
+            Button refuser = Composants.contour("Refuser");
+            refuser.setOnAction(e -> action(() -> {
+                reactivations.traiter(admin.getId(), d.getId(), false);
+                succes("La demande de " + u.getNomComplet() + " a \u00e9t\u00e9 refus\u00e9e.");
+            }));
+            getChildren().add(ligne(texte(u.getNomComplet(), "Motif : " + d.getMotif() + " - " + Aff.date(d.getDateDemande())), refuser, accepter));
+        }
+        getChildren().addAll(titreSection("Tous les comptes"), recherche, resume, liste);
         remplir();
     }
 
